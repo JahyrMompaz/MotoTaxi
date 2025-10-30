@@ -12,7 +12,7 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useIsMobile } from './ui/use-mobile';
 
@@ -273,7 +273,7 @@ export function Facturacion() {
     <>
       <div className="grid gap-2">
         <Label htmlFor="cliente">Cliente *</Label>
-        <Select value={formData.cliente} onValueChange={(value) => {
+        <Select value={formData.cliente} onValueChange={(value: string) => {
           const rfcMap: Record<string, string> = {
             'Transportes del Norte': 'ABC123456789',
             'Logística Express': 'DEF987654321',
@@ -297,7 +297,7 @@ export function Facturacion() {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="tipoVenta">Tipo de Venta *</Label>
-          <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value, mototaxiId: 0, refaccionId: 0, total: 0 })}>
+          <Select value={formData.tipo} onValueChange={(value: string) => setFormData({ ...formData, tipo: value, mototaxiId: 0, refaccionId: 0, total: 0 })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -310,7 +310,7 @@ export function Facturacion() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="usoCFDI">Uso CFDI *</Label>
-          <Select value={formData.usoCFDI} onValueChange={(value) => setFormData({ ...formData, usoCFDI: value })}>
+          <Select value={formData.usoCFDI} onValueChange={(value: string) => setFormData({ ...formData, usoCFDI: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -329,7 +329,7 @@ export function Facturacion() {
           <Label htmlFor="mototaxi">Seleccionar Mototaxi *</Label>
           <Select 
             value={formData.mototaxiId.toString()} 
-            onValueChange={(value) => setFormData({ ...formData, mototaxiId: parseInt(value) })}
+            onValueChange={(value: string) => setFormData({ ...formData, mototaxiId: parseInt(value) })}
           >
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar mototaxi" />
@@ -367,7 +367,7 @@ export function Facturacion() {
           <Label htmlFor="refaccion">Seleccionar Refacción *</Label>
           <Select 
             value={formData.refaccionId.toString()} 
-            onValueChange={(value) => setFormData({ ...formData, refaccionId: parseInt(value) })}
+            onValueChange={(value: string) => setFormData({ ...formData, refaccionId: parseInt(value) })}
           >
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar refacción" />
@@ -401,7 +401,7 @@ export function Facturacion() {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="formaPago">Forma de Pago</Label>
-          <Select value={formData.formaPago} onValueChange={(value) => setFormData({ ...formData, formaPago: value })}>
+          <Select value={formData.formaPago} onValueChange={(value: string) => setFormData({ ...formData, formaPago: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -415,7 +415,7 @@ export function Facturacion() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="metodoPago">Método de Pago</Label>
-          <Select value={formData.metodoPago} onValueChange={(value) => setFormData({ ...formData, metodoPago: value })}>
+          <Select value={formData.metodoPago} onValueChange={(value: string) => setFormData({ ...formData, metodoPago: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -1006,7 +1006,7 @@ export function Facturacion() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="motivo">Motivo de Cancelación *</Label>
-              <Select value={cancelData.motivo} onValueChange={(value) => setCancelData({ ...cancelData, motivo: value })}>
+              <Select value={cancelData.motivo} onValueChange={(value: string) => setCancelData({ ...cancelData, motivo: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar motivo" />
                 </SelectTrigger>

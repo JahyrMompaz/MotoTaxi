@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useIsMobile } from './ui/use-mobile';
 import { Badge } from './ui/badge';
@@ -272,7 +272,7 @@ export function Clientes() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="usoCFDI">Uso CFDI</Label>
-                <Select value={formData.usoCFDI} onValueChange={(value) => setFormData({ ...formData, usoCFDI: value })}>
+                <Select value={formData.usoCFDI} onValueChange={(value: string) => setFormData({ ...formData, usoCFDI: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar uso" />
                   </SelectTrigger>
@@ -377,7 +377,7 @@ export function Clientes() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="usoCFDI-mobile">Uso CFDI</Label>
-                      <Select value={formData.usoCFDI} onValueChange={(value) => setFormData({ ...formData, usoCFDI: value })}>
+                      <Select value={formData.usoCFDI} onValueChange={(value: string) => setFormData({ ...formData, usoCFDI: value })}>
                         <SelectTrigger className="h-11">
                           <SelectValue placeholder="Seleccionar uso" />
                         </SelectTrigger>
@@ -616,7 +616,7 @@ export function Clientes() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-usoCFDI">Uso CFDI</Label>
-              <Select value={formData.usoCFDI} onValueChange={(value) => setFormData({ ...formData, usoCFDI: value })}>
+              <Select value={formData.usoCFDI} onValueChange={(value: string) => setFormData({ ...formData, usoCFDI: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar uso" />
                 </SelectTrigger>

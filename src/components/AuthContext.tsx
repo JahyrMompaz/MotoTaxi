@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { api } from '../lib/api';
 
 export type UserRole = 'Administrador' | 'Vendedor' | 'Facturista';
 
@@ -10,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -23,6 +24,7 @@ const mockUsers = [
   { username: 'vendedor', password: 'vendedor123', role: 'Vendedor' as UserRole, fullName: 'Juan Pérez' },
   { username: 'facturista', password: 'facturista123', role: 'Facturista' as UserRole, fullName: 'María López' },
 ];
+
 
 // Definición de permisos por rol
 const rolePermissions: Record<UserRole, string[]> = {
@@ -52,21 +54,52 @@ const rolePermissions: Record<UserRole, string[]> = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = (username: string, password: string): boolean => {
-    const foundUser = mockUsers.find(
-      u => u.username === username && u.password === password
-    );
-
+// Usuarios a el backend
+  // const login = async (username: string, password: string): Promise<boolean> => {
+  //   try {
+  //     const res = await fetch(api('/login'), {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ username, password }),
+  //     });
+  //     if (!res.ok) throw new Error('Login failed');
+  //     const data = await res.json();
+  //     const loggedInUser: User = {
+  //       username: data.username,
+  //       role: data.role,
+  //       fullName: data.fullName,
+  //     };
+  //     setUser(loggedInUser);
+  //     return true;
+  //   } catch (error) {
+  //     console.error('Login error:', error);
+  //     return false;
+  //   }
+  // };
+  
+  const login = async (username: string, password: string): Promise<boolean> => {
+    const foundUser = mockUsers.find(u => u.username === username && u.password === password);
     if (foundUser) {
-      setUser({
+      const loggedInUser: User = {
         username: foundUser.username,
         role: foundUser.role,
         fullName: foundUser.fullName,
-      });
+      };
+      setUser(loggedInUser);
       return true;
     }
     return false;
   };
+
+    useEffect(() => {
+  const savedUser = localStorage.getItem('user');
+  if (savedUser) setUser(JSON.parse(savedUser));
+}, []);
+
+  useEffect(() => {
+    if (user) localStorage.setItem('user', JSON.stringify(user));
+    else localStorage.removeItem('user');
+  }, [user]);
 
   const logout = () => {
     setUser(null);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import { Layout } from './components/Layout';
+import { ClientesPage } from './components/clientes/ClientesPage';
 import { Clientes } from './components/Clientes';
 import { Refacciones } from './components/Refacciones';
 import { Mototaxis } from './components/Mototaxis';
@@ -48,7 +49,7 @@ function AppContent() {
   const renderPage = () => {
     switch (currentPage) {
       case 'clientes':
-        return <Clientes />;
+        return <ClientesPage />;
       case 'refacciones':
         return <Refacciones />;
       case 'mototaxis':
