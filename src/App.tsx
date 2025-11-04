@@ -5,10 +5,15 @@ import { Layout } from './components/Layout';
 import { ClientesPage } from './components/clientes/ClientesPage';
 import { Clientes } from './components/Clientes';
 import { Refacciones } from './components/Refacciones';
+import { RefaccionesPage } from './components/refacciones/RefaccionesPage';
 import { Mototaxis } from './components/Mototaxis';
+import { MototaxiPage } from './components/mototaxis/MototaxiPage';
 import { Servicios } from './components/Servicios';
+import { ServicioPage } from './components/servicios/ServicioPage';
 import { Facturacion } from './components/Facturacion';
+import { FacturasPage } from './components/facturacion/FacturasPage';
 import { Reportes } from './components/Reportes';
+import { ReportesPage } from './components/reportes/ReportesPage';
 import { Configuracion } from './components/Configuracion';
 import { Toaster } from './components/ui/sonner';
 
@@ -51,19 +56,19 @@ function AppContent() {
       case 'clientes':
         return <ClientesPage />;
       case 'refacciones':
-        return <Refacciones />;
+        return <RefaccionesPage />;
       case 'mototaxis':
-        return <Mototaxis />;
+        return <MototaxiPage />;
       case 'servicios':
-        return <Servicios />;
+        return <ServicioPage />;
       case 'facturacion':
-        return <Facturacion />;
+        return <FacturasPage />;
       case 'reportes':
-        return <Reportes />;
+        return <ReportesPage />;
       case 'configuracion':
         return <Configuracion />;
       default:
-        return <Clientes />;
+        return <ClientesPage />;
     }
   };
 

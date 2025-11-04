@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { LogIn, User, Lock } from 'lucide-react';
 
 export function Login() {
@@ -26,8 +26,8 @@ export function Login() {
     setIsLoading(true);
     
     // Simular delay de autenticación
-    setTimeout(() => {
-      const success = login(formData.username, formData.password);
+    setTimeout(async () => {
+      const success = await login(formData.username, formData.password);
       
       if (success) {
         toast.success('¡Bienvenido! Sesión iniciada correctamente');

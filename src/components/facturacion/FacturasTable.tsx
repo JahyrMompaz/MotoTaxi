@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { Edit, Trash2, FileText, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
