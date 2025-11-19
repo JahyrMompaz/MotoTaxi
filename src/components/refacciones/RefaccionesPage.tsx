@@ -76,7 +76,7 @@ export function RefaccionesPage() {
             <Button className="bg-[#B02128] text-white"><Plus className="h-4 w-4 mr-2" />Agregar</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] bg-white">
-            <RefaccionForm onSubmit={handleCreate} />
+            <RefaccionForm initialData={selected} onSubmit={handleCreate} />
           </DialogContent>
         </Dialog>
       </div>
@@ -101,7 +101,7 @@ export function RefaccionesPage() {
             </thead>
             <tbody>
               {refacciones
-                .filter(r => r.descripcion.toLowerCase().includes(search.toLowerCase()) || r.codigo.toLowerCase().includes(search.toLowerCase()))
+                .filter(r => (r.descripcion ?? "").toLowerCase().includes(search.toLowerCase()) || (r.codigo ?? "").toLowerCase().includes(search.toLowerCase()))
                 .map(r => (
                 <tr key={r.id} className="border-b">
                   <td>{r.codigo}</td>
@@ -110,7 +110,18 @@ export function RefaccionesPage() {
                   <td>${r.precio.toLocaleString()}</td>
                   <td className="text-right flex justify-end gap-2 py-2">
                     <Button variant="ghost" size="icon" onClick={() => { setSelected(r); setIsViewOpen(true); }}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelected(r)
+                        setIsDialogOpen(true)
+                      }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      handleDelete(r.id);
+                    }}><Trash2 className="h-4 w-4" /></Button>
                     <AlertDialog>
                       <AlertDialogContent className="bg-white">
                         <p>¿Eliminar {r.descripcion}?</p>

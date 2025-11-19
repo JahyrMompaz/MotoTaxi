@@ -30,6 +30,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
     { id: 'mototaxis', label: 'Mototaxis', icon: Bike, permission: 'mototaxis.view' },
     { id: 'servicios', label: 'Servicios', icon: Wrench, permission: 'servicios.view' },
     { id: 'facturacion', label: 'Facturación', icon: FileText, permission: 'facturacion.view' },
+    { id: 'cartaPorte', label: 'Carta Porte', icon: FileText, permission: 'cartaPorte.view' },
     { id: 'reportes', label: 'Reportes', icon: BarChart3, permission: 'reportes.view' },
     { id: 'configuracion', label: 'Configuración', icon: Settings, permission: 'configuracion.view' },
   ];
@@ -60,7 +61,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
               <div className="bg-[#B02128] rounded-lg p-1.5">
                 <Bike className="h-4 w-4 text-white" />
               </div>
-              <span className="text-[#1E293B] text-sm">Mototaxis Pro</span>
+              <span className="text-[#1E293B] text-sm">Mototaxis San Juan</span>
             </div>
           </div>
           <div className="flex items-center gap-2">

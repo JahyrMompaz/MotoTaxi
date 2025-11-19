@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "./../ui/button";
+import { Edit, Trash2 , Eye } from "lucide-react";
 import { Input } from "./../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./../ui/table";
@@ -28,9 +29,11 @@ import {
   deleteServicio,
   updateEstatus,
 } from "./serviciosService";
+import { getClientes } from "../clientes/ClienteService";
+import { Cliente } from "../clientes/ClientesPage";
 
 export function ServicioPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [servicios, setServicios] = useState<Servicio[]>([]);
@@ -41,23 +44,33 @@ export function ServicioPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState("Pendiente");
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
 
   const [formData, setFormData] = useState<Partial<Servicio>>({
+    cliente_id: "" as any,
     cliente: "",
     tipo: "",
     tecnico: "",
-    fecha: "",
+    fecha_ingreso: "",
     estatus: "Pendiente",
-    costo: 0,
+    costo_real: 0,
     descripcion: "",
-    refacciones: "",
+    observaciones: "",
   });
+
+  const getClienteNombre = (id: any) => {
+  const c = clientes.find(c => c.id === Number(id));
+  return c ? c.nombre : "—";
+};
+
 
   // ─── API ───────────────────────────────────────────────────────────────
   const loadServicios = async () => {
     try {
       const data = await getServicios();
       setServicios(data);
+      console.log("SERVICIOS:", data);
     } catch {
       toast.error("Error al cargar servicios");
     }
@@ -65,22 +78,17 @@ export function ServicioPage() {
 
   const handleAdd = async () => {
     try {
-      if (!formData.cliente || !formData.tipo || !formData.tecnico || !formData.fecha) {
+      if (!formData.cliente_id || !formData.tipo || !formData.tecnico || !formData.fecha_ingreso) {
         toast.error("Por favor completa los campos obligatorios");
         return;
       }
-      if (selectedServicio) {
-        await updateServicio(selectedServicio.id, formData);
-        toast.success("Servicio actualizado exitosamente");
-        setIsAddDialogOpen(false);
-        loadServicios();
-        return;
-      }else {
+     
       await createServicio(formData);
       toast.success("Servicio registrado exitosamente");
       setIsAddDialogOpen(false);
+      setSelectedServicio(null);
       loadServicios();
-      }
+      
     } catch {
       toast.error("Error al registrar servicio");
     }
@@ -122,15 +130,26 @@ export function ServicioPage() {
     }
   };
 
+  const loadClientes = async () => {
+  try {
+    const data = await getClientes();
+    setClientes(data);
+  } catch {
+    toast.error("Error al cargar clientes");
+  }
+};
+
+
   useEffect(() => {
     loadServicios();
+    loadClientes();
   }, []);
 
   // ─── FILTROS Y VISUALIZACIÓN ───────────────────────────────────────────────
   const filteredServicios = servicios.filter(
     (s) =>
-      s.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.tipo.toLowerCase().includes(searchTerm.toLowerCase())
+      String(s.cliente_id).includes(searchTerm) ||
+      (s.tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const serviciosActivos = filteredServicios.filter((s) => s.estatus !== "Completado");
@@ -162,6 +181,7 @@ export function ServicioPage() {
     }
   };
 
+
   return (
     <div className={`space-y-4 ${isMobile ? "pb-20" : ""}`}>
       {/* Header */}
@@ -177,15 +197,17 @@ export function ServicioPage() {
           <Button
             className="bg-[#B02128] hover:bg-[#8B1A20] text-white w-full sm:w-auto"
             onClick={() => {
+              setSelectedServicio(null);
               setFormData({
+                cliente_id: "" as any,
                 cliente: "",
                 tipo: "",
                 tecnico: "",
-                fecha: "",
+                fecha_ingreso: "",
                 estatus: "Pendiente",
-                costo: 0,
+                costo_real: 0,
                 descripcion: "",
-                refacciones: "",
+                observaciones: "",
               });
               setIsAddDialogOpen(true);
             }}
@@ -273,7 +295,7 @@ export function ServicioPage() {
                           <TableCell>{s.cliente}</TableCell>
                           <TableCell>{s.tipo}</TableCell>
                           <TableCell>{s.tecnico}</TableCell>
-                          <TableCell>{s.fecha}</TableCell>
+                          <TableCell>{s.fecha_ingreso}</TableCell>
                           <TableCell>
                             <Badge
                               className={`${getStatusColor(
@@ -284,7 +306,33 @@ export function ServicioPage() {
                               <span>{s.estatus}</span>
                             </Badge>
                           </TableCell>
-                          <TableCell>${s.costo.toLocaleString()}</TableCell>
+                          <TableCell>${s.costo_real.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => { 
+                                  setSelectedServicio(s);
+                                  setIsViewDialogOpen(true);
+                                }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+
+    <Button variant="ghost" size="icon" onClick={() => {
+      setSelectedServicio(s);
+      setFormData(s as any);
+      setIsEditDialogOpen(true);
+    }}>
+      <Edit className="h-4 w-4" />
+    </Button>
+
+    <Button variant="ghost" size="icon" onClick={() => {
+      setSelectedServicio(s);
+      setIsDeleteDialogOpen(true);
+    }}>
+      <Trash2 className="h-4 w-4 text-red-500" />
+    </Button>
+  </div>
+</TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>
@@ -337,13 +385,13 @@ export function ServicioPage() {
                           <TableCell>{s.cliente}</TableCell>
                           <TableCell>{s.tipo}</TableCell>
                           <TableCell>{s.tecnico}</TableCell>
-                          <TableCell>{s.fecha}</TableCell>
+                          <TableCell>{s.fecha_ingreso}</TableCell>
                           <TableCell>
                             <Badge className={`${getStatusColor(s.estatus)}`}>
                               {s.estatus}
                             </Badge>
                           </TableCell>
-                          <TableCell>${s.costo.toLocaleString()}</TableCell>
+                          <TableCell>${s.costo_real.toLocaleString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -361,7 +409,7 @@ export function ServicioPage() {
           <DialogHeader>
             <DialogTitle>Registrar Servicio</DialogTitle>
           </DialogHeader>
-          <ServicioForm formData={formData} setFormData={setFormData} />
+          <ServicioForm formData={formData} setFormData={setFormData} clientes= {clientes} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancelar
@@ -381,7 +429,7 @@ export function ServicioPage() {
           <DialogHeader>
             <DialogTitle>Editar Servicio</DialogTitle>
           </DialogHeader>
-          <ServicioForm formData={formData} setFormData={setFormData} />
+          <ServicioForm formData={formData} setFormData={setFormData} clientes={clientes}/>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancelar
@@ -412,6 +460,26 @@ export function ServicioPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+  <DialogContent className="sm:max-w-[500px] bg-white">
+    {selectedServicio && (
+      <div className="space-y-3">
+        <h2 className="text-lg font-bold">{selectedServicio.tipo}</h2>
+
+        <p><b>Cliente:</b> {selectedServicio.cliente}</p>
+        <p><b>Técnico:</b> {selectedServicio.tecnico}</p>
+        <p><b>Fecha:</b> {selectedServicio.fecha_ingreso}</p>
+        <p><b>Costo:</b> ${selectedServicio.costo_real}</p>
+        <p><b>Estatus:</b> {selectedServicio.estatus}</p>
+
+        <p><b>Descripción:</b> {selectedServicio.descripcion ?? "Sin descripción"}</p>
+        <p><b>Observaciones:</b> {selectedServicio.observaciones ?? "Sin observaciones"}</p>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
+
     </div>
   );
 }

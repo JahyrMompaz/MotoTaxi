@@ -51,18 +51,6 @@ export function ReportesPage() {
           <h1 className="text-[#1E293B]">Reportes</h1>
           <p className="text-[#64748B] text-xs sm:text-sm">Análisis y reportes de ventas</p>
         </div>
-
-        {/* Export buttons */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" className="text-[#1E293B]">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-          <Button className="bg-[#1E293B] hover:bg-[#0F172A] text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Excel
-          </Button>
-        </div>
       </div>
 
       {/* Filtros */}

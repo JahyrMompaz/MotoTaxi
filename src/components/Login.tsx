@@ -112,31 +112,12 @@ export function Login() {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials info */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-xs text-center text-gray-500 mb-3">Credenciales de prueba:</p>
-              <div className="space-y-2 text-xs">
-                <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                  <p className="text-[#B02128]">👤 Administrador</p>
-                  <p className="text-gray-600">Usuario: <span className="font-mono">admin</span> | Contraseña: <span className="font-mono">admin123</span></p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                  <p className="text-[#B02128]">👤 Vendedor</p>
-                  <p className="text-gray-600">Usuario: <span className="font-mono">vendedor</span> | Contraseña: <span className="font-mono">vendedor123</span></p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                  <p className="text-[#B02128]">👤 Facturista</p>
-                  <p className="text-gray-600">Usuario: <span className="font-mono">facturista</span> | Contraseña: <span className="font-mono">facturista123</span></p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
         {/* Footer */}
         <p className="text-center text-gray-300 text-xs mt-6">
-          © 2024 Mototaxis y Refacciones S.A. de C.V.
+          © 2024 Mototaxis y Refacciones San Juan S.A. de C.V.
         </p>
       </div>
     </div>

@@ -30,10 +30,10 @@ export function ClientesTable({ clientes, onEdit, onDelete }: Props) {
           {clientes.map((c) => (
             <TableRow key={c.id}>
               <TableCell>{c.rfc}</TableCell>
-              <TableCell>{c.razonSocial}</TableCell>
-              <TableCell>{c.correo}</TableCell>
+              <TableCell>{c.nombre}</TableCell>
+              <TableCell>{c.email}</TableCell>
               <TableCell>{c.telefono}</TableCell>
-              <TableCell>{c.fechaAlta}</TableCell>
+              <TableCell>{c.created_at}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   {hasPermission("clientes.edit") && (

@@ -17,13 +17,21 @@ export async function getReporteVentas(
   params?: { fechaInicio?: string; fechaFin?: string; tipo?: string }
 ): Promise<Venta[]> {
   const query = new URLSearchParams(params as Record<string, string>).toString();
-  const res = await fetch((api(`/reportes/ventas?${query}`)));
+  const res = await fetch((api(`/reportes/ventas?${query}`)), { 
+    method: "GET",
+    headers: { "Accept": "application/json" },
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Error al obtener reportes de ventas");
   return res.json();
 }
 
 export async function getIngresosMensuales(): Promise<IngresoMensual[]> {
-  const res = await fetch((api(`/reportes/ingresos`)));
+  const res = await fetch((api(`/reportes/ingresos`)), { 
+    method: "GET",
+    headers: { "Accept": "application/json" },
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Error al obtener ingresos mensuales");
   return res.json();
 }

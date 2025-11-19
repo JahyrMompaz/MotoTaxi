@@ -11,11 +11,13 @@ import { MototaxiPage } from './components/mototaxis/MototaxiPage';
 import { Servicios } from './components/Servicios';
 import { ServicioPage } from './components/servicios/ServicioPage';
 import { Facturacion } from './components/Facturacion';
-import { FacturasPage } from './components/facturacion/FacturasPage';
+import FacturasPage from './components/facturacion/FacturasPage';
 import { Reportes } from './components/Reportes';
 import { ReportesPage } from './components/reportes/ReportesPage';
 import { Configuracion } from './components/Configuracion';
 import { Toaster } from './components/ui/sonner';
+import { CartaPorte } from './components/CartaPorte';
+import { CartaPortePage } from './components/cartaporte/CartaPortePage';
 
 function AppContent() {
   const { user, hasPermission } = useAuth();
@@ -30,6 +32,7 @@ function AppContent() {
         mototaxis: 'mototaxis.view',
         servicios: 'servicios.view',
         facturacion: 'facturacion.view',
+        cartaPorte: 'cartaPorte.view',
         reportes: 'reportes.view',
         configuracion: 'configuracion.view',
       };
@@ -63,6 +66,8 @@ function AppContent() {
         return <ServicioPage />;
       case 'facturacion':
         return <FacturasPage />;
+      case 'cartaPorte':
+        return <CartaPortePage />;
       case 'reportes':
         return <ReportesPage />;
       case 'configuracion':

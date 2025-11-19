@@ -9,3 +9,8 @@ export const api = (path: string) => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_URL}${API_PREFIX}${cleanPath}`;
 };
+
+export const apiPublic = (path: string) => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_URL}${cleanPath}`;
+}

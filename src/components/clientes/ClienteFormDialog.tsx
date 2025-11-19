@@ -17,19 +17,20 @@ export function ClienteFormDialog({ open, onOpenChange, onSave, editing }: Props
   const [formData, setFormData] = useState<Cliente>({
     id: 0,
     rfc: "",
-    razonSocial: "",
-    correo: "",
+    nombre: "",
+    email: "",
     telefono: "",
-    fechaAlta: "",
+    created_at: "",
+    codigo_postal: "",
   });
 
   useEffect(() => {
     if (editing) setFormData(editing);
-    else setFormData({ id: 0, rfc: "", razonSocial: "", correo: "", telefono: "", fechaAlta: "" });
+    else setFormData({ id: 0, rfc: "", nombre: "", email: "", telefono: "", created_at: "", codigo_postal: "" });
   }, [editing]);
 
   const handleSubmit = () => {
-    if (!formData.rfc || !formData.razonSocial || !formData.correo) {
+    if (!formData.rfc || !formData.nombre || !formData.email || !formData.codigo_postal) {
     toast.error("Por favor, complete todos los campos obligatorios.");
         return
         };
@@ -56,17 +57,17 @@ export function ClienteFormDialog({ open, onOpenChange, onSave, editing }: Props
           <div>
             <Label>Razón Social *</Label>
             <Input
-              value={formData.razonSocial}
-              onChange={(e) => setFormData({ ...formData, razonSocial: e.target.value })}
-              placeholder="Se llenara automaticamente al consultar RFC"
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              placeholder="Empresa S.A. de C.V."
             />
           </div>
           <div>
             <Label>Correo *</Label>
             <Input
               type="email"
-              value={formData.correo}
-              onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="correo@example.com"
             />
           </div>
@@ -76,6 +77,14 @@ export function ClienteFormDialog({ open, onOpenChange, onSave, editing }: Props
               value={formData.telefono}
               onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                 placeholder="10 dígitos sin espacios ni guiones"
+            />
+          </div>
+          <div>
+            <Label>C.P. de domicilio fiscal</Label>
+            <Input
+              value={formData.codigo_postal}
+              onChange={(e) => setFormData({ ...formData, codigo_postal: e.target.value })}
+                placeholder="00417"
             />
           </div>
         </div>

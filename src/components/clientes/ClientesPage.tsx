@@ -13,11 +13,12 @@ import { api } from "../../lib/api";
 export interface Cliente {
   id: number;
   rfc: string;
-  razonSocial: string;
-  correo: string;
+  nombre: string;
+  email: string;
   telefono: string;
-  fechaAlta: string;
-  usoCFDI?: string;
+  created_at: string;
+  codigo_postal: string;
+  uso_cfdi_default?: string;
   direccion?: string;
 }
 
@@ -32,8 +33,8 @@ export function ClientesPage() {
 
   // 🔍 Filtrado
   const filtered = clientes.filter(c =>
-    c.razonSocial.toLowerCase().includes(search.toLowerCase()) ||
-    c.rfc.toLowerCase().includes(search.toLowerCase())
+    (c.nombre ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.rfc ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   useEffect(() => {
@@ -42,10 +43,14 @@ export function ClientesPage() {
 
   const fetchClientes = async () => {
     try {
-      const res = await fetch(api("/clientes"));
+      const res = await fetch(api("/clientes"), { 
+        method: "GET",
+        credentials: "include", 
+        headers: { "Accept" : "application/json" }
+      });
       if (!res.ok) throw new Error("Error al obtener clientes");
       const data = await res.json();
-      setClientes(data);
+      setClientes(data.data ?? data);
     } catch (error) {
       toast.error("Error al cargar los clientes");
     }
@@ -57,13 +62,15 @@ export function ClientesPage() {
         if (editing) {
             res = await fetch(api(`/clientes/${nuevo.id}`), {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(nuevo),
             });
         } else {
             res = await fetch(api("/clientes"), {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(nuevo),
             });
         }
@@ -81,7 +88,11 @@ export function ClientesPage() {
   // 🗑️ Eliminar
   const handleDelete = async (id: number) => {
     try {
-        const res = await fetch(api(`/clientes/${id}`), { method: "DELETE" });
+        const res = await fetch(api(`/clientes/${id}`), { 
+          method: "DELETE",
+          credentials: "include",
+          headers: { "Accept": "application/json" }
+        });
         if (!res.ok) throw new Error("Error al eliminar cliente");
         toast.success("Cliente eliminado con éxito");
         fetchClientes();

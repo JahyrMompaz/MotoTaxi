@@ -3,28 +3,37 @@ import { Label } from "./../ui/label";
 import { Textarea } from "./../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./../ui/select";
 import { useIsMobile } from "./../ui/use-mobile";
+import { Cliente } from "../clientes/ClientesPage";
+import { getClientes } from "./../clientes/ClienteService";
+import { useState } from "react";
 
 interface ServicioFormProps {
   formData: any;
   setFormData: (data: any) => void;
+  clientes: Cliente[];
 }
 
-export function ServicioForm({ formData, setFormData }: ServicioFormProps) {
+export function ServicioForm({ formData, setFormData, clientes }: ServicioFormProps) {
   const isMobile = useIsMobile();
 
   return (
     <>
       <div className="grid gap-2">
         <Label>Cliente *</Label>
-        <Select value={formData.cliente} onValueChange={(v: any) => setFormData({ ...formData, cliente: v })}>
+        <Select
+  value={formData.cliente_id ? String(formData.cliente_id) : ""}
+  onValueChange={(v: any) => setFormData({ ...formData, cliente_id: Number(v) })}
+>
+
           <SelectTrigger className={isMobile ? "h-11" : ""}>
             <SelectValue placeholder="Seleccionar cliente" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Transportes del Norte">Transportes del Norte</SelectItem>
-            <SelectItem value="Logística Express">Logística Express</SelectItem>
-            <SelectItem value="Mototaxis del Sur">Mototaxis del Sur</SelectItem>
-            <SelectItem value="Comercializadora Global">Comercializadora Global</SelectItem>
+            {clientes.map((c: any) => (
+              <SelectItem key={c.id} value={String(c.id)}>
+                {c.nombre}
+              </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
@@ -64,8 +73,8 @@ export function ServicioForm({ formData, setFormData }: ServicioFormProps) {
         <Label>Descripción del Servicio</Label>
         <Textarea
           placeholder="Detalles del servicio a realizar..."
-          value={formData.descripcion}
-          onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+          value={formData.observaciones}
+          onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
           rows={3}
         />
       </div>
@@ -75,8 +84,8 @@ export function ServicioForm({ formData, setFormData }: ServicioFormProps) {
           <Label>Fecha *</Label>
           <Input
             type="date"
-            value={formData.fecha}
-            onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+            value={formData.fecha_ingreso}
+            onChange={(e) => setFormData({ ...formData, fecha_ingreso: e.target.value })}
           />
         </div>
         <div className="grid gap-2">
@@ -97,21 +106,11 @@ export function ServicioForm({ formData, setFormData }: ServicioFormProps) {
       <div className="grid gap-2">
         <Label>Costo Estimado</Label>
         <Input
-          id="costo"
+          id="costo_real"
           type="number"
           placeholder="0.00"
-          value={formData.costo ?? 0}
-          onChange={(e) => setFormData({ ...formData, costo: parseFloat(e.target.value) || 0 })}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <Label>Refacciones Utilizadas</Label>
-        <Textarea
-          placeholder="Lista de refacciones..."
-          value={formData.refacciones}
-          onChange={(e) => setFormData({ ...formData, refacciones: e.target.value })}
-          rows={2}
+          value={formData.costo_real ?? 0}
+          onChange={(e) => setFormData({ ...formData, costo_real: parseFloat(e.target.value) || 0 })}
         />
       </div>
     </>

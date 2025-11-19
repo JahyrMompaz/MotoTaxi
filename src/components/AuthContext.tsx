@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api, apiPublic } from '../lib/api';
 
 export type UserRole = 'Administrador' | 'Vendedor' | 'Facturista';
 
@@ -18,14 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuarios de prueba
-const mockUsers = [
-  { username: 'admin', password: 'admin123', role: 'Administrador' as UserRole, fullName: 'Administrador Sistema' },
-  { username: 'vendedor', password: 'vendedor123', role: 'Vendedor' as UserRole, fullName: 'Juan Pérez' },
-  { username: 'facturista', password: 'facturista123', role: 'Facturista' as UserRole, fullName: 'María López' },
-];
-
-
 // Definición de permisos por rol
 const rolePermissions: Record<UserRole, string[]> = {
   Administrador: [
@@ -35,6 +27,7 @@ const rolePermissions: Record<UserRole, string[]> = {
     'servicios.view', 'servicios.create', 'servicios.edit', 'servicios.delete',
     'facturacion.view', 'facturacion.create', 'facturacion.cancel',
     'reportes.view', 'reportes.export',
+    'cartaPorte.view', 'cartaPorte.create', 'cartaPorte.edit', 'cartaPorte.delete',
     'configuracion.view', 'configuracion.edit',
   ],
   Vendedor: [
@@ -55,60 +48,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
 // Usuarios a el backend
-  // const login = async (username: string, password: string): Promise<boolean> => {
-  //   try {
-  //     const res = await fetch(api('/login'), {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ username, password }),
-  //     });
-  //     if (!res.ok) throw new Error('Login failed');
-  //     const data = await res.json();
-  //     const loggedInUser: User = {
-  //       username: data.username,
-  //       role: data.role,
-  //       fullName: data.fullName,
-  //     };
-  //     setUser(loggedInUser);
-  //     return true;
-  //   } catch (error) {
-  //     console.error('Login error:', error);
-  //     return false;
-  //   }
-  // };
-  
   const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = mockUsers.find(u => u.username === username && u.password === password);
-    if (foundUser) {
+    try {
+      await fetch(apiPublic('/sanctum/csrf-cookie'), {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const res = await fetch(api('/auth/login'), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          "Accept": "application/json"
+         },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      });
+      if (!res.ok) throw new Error('Login failed');
+      
+      const userRes = await fetch(api('/auth/user'), {
+        method: "GET",
+        credentials: "include",
+        headers: { 
+          "Accept": "application/json"
+         },
+      });
+      if (!userRes.ok) throw new Error('Failed to fetch user');
+
+      const data = await userRes.json();
       const loggedInUser: User = {
-        username: foundUser.username,
-        role: foundUser.role,
-        fullName: foundUser.fullName,
-      };
-      setUser(loggedInUser);
-      return true;
-    }
+        username: data.username,
+        role: data.role,
+      fullName: data.full_name,
+    };
+    setUser(loggedInUser);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    return true;
+    } catch (error) {
+    console.error('Login error:', error);
     return false;
+  }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(api('/auth/logout'), {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {}
+    setUser(null);
+    localStorage.removeItem('user');
   };
 
     useEffect(() => {
-  const savedUser = localStorage.getItem('user');
-  if (savedUser) setUser(JSON.parse(savedUser));
-}, []);
-
-  useEffect(() => {
-    if (user) localStorage.setItem('user', JSON.stringify(user));
-    else localStorage.removeItem('user');
-  }, [user]);
-
-  const logout = () => {
-    setUser(null);
-  };
+    (async () => {
+      try {
+        const res = await fetch(api('/auth/user'), {
+          credentials: "include"
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser({
+            username: data.username,
+            role: data.role,
+            fullName: data.full_name
+          });
+        }
+        
+      } catch {}
+    })();
+  }, []);
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
     return rolePermissions[user.role].includes(permission);
   };
+
+  
 
   return (
     <AuthContext.Provider value={{ user, login, logout, hasPermission }}>
@@ -122,5 +139,7 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
+  
   return context;
 }

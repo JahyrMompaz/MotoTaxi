@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, FileText, CheckCircle, XCircle, Clock, Eye, Download, QrCode, Building2, Calendar, CreditCard, Bike } from 'lucide-react';
+import { Plus, FileText, CheckCircle, XCircle, Clock, Eye, Download, QrCode, Building2, Calendar, CreditCard, Bike, MinusCircle, PlusCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -88,6 +88,8 @@ export function Facturacion() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isNotaCreditoOpen, setIsNotaCreditoOpen] = useState(false);
+  const [isNotaCargoOpen, setIsNotaCargoOpen] = useState(false);
   const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null);
   const [formData, setFormData] = useState({
     cliente: '',
@@ -105,6 +107,11 @@ export function Facturacion() {
   const [cancelData, setCancelData] = useState({
     motivo: '',
     uuidSustitucion: '',
+  });
+  const [notaData, setNotaData] = useState({
+    motivo: '',
+    monto: 0,
+    descripcion: '',
   });
 
   const getStatusIcon = (estatus: string) => {
@@ -260,6 +267,81 @@ export function Facturacion() {
     setIsCancelDialogOpen(true);
   };
 
+  const openNotaCreditoDialog = (factura: Factura) => {
+    setSelectedFactura(factura);
+    setNotaData({ motivo: '', monto: 0, descripcion: '' });
+    setIsNotaCreditoOpen(true);
+  };
+
+  const openNotaCargoDialog = (factura: Factura) => {
+    setSelectedFactura(factura);
+    setNotaData({ motivo: '', monto: 0, descripcion: '' });
+    setIsNotaCargoOpen(true);
+  };
+
+  const handleCrearNotaCredito = () => {
+    if (!selectedFactura) return;
+    
+    if (!notaData.motivo || !notaData.monto || !notaData.descripcion) {
+      toast.error('Por favor completa todos los campos');
+      return;
+    }
+
+    if (notaData.monto > selectedFactura.total) {
+      toast.error('El monto de la nota de crédito no puede ser mayor al total de la factura');
+      return;
+    }
+
+    const nuevaNota: Factura = {
+      id: Math.max(...facturas.map(f => f.id)) + 1,
+      folio: `NC-${45682 + facturas.length + 1}`,
+      cliente: selectedFactura.cliente,
+      rfc: selectedFactura.rfc,
+      tipo: `Nota de Crédito (${selectedFactura.folio})`,
+      total: -notaData.monto,
+      estatus: 'Timbrada',
+      fecha: new Date().toISOString().split('T')[0],
+      usoCFDI: selectedFactura.usoCFDI,
+      formaPago: selectedFactura.formaPago,
+      conceptos: notaData.descripcion,
+    };
+
+    setFacturas([nuevaNota, ...facturas]);
+    toast.success('Nota de crédito generada y timbrada exitosamente');
+    setIsNotaCreditoOpen(false);
+    setSelectedFactura(null);
+    setNotaData({ motivo: '', monto: 0, descripcion: '' });
+  };
+
+  const handleCrearNotaCargo = () => {
+    if (!selectedFactura) return;
+    
+    if (!notaData.motivo || !notaData.monto || !notaData.descripcion) {
+      toast.error('Por favor completa todos los campos');
+      return;
+    }
+
+    const nuevaNota: Factura = {
+      id: Math.max(...facturas.map(f => f.id)) + 1,
+      folio: `ND-${45682 + facturas.length + 1}`,
+      cliente: selectedFactura.cliente,
+      rfc: selectedFactura.rfc,
+      tipo: `Nota de Cargo (${selectedFactura.folio})`,
+      total: notaData.monto,
+      estatus: 'Timbrada',
+      fecha: new Date().toISOString().split('T')[0],
+      usoCFDI: selectedFactura.usoCFDI,
+      formaPago: selectedFactura.formaPago,
+      conceptos: notaData.descripcion,
+    };
+
+    setFacturas([nuevaNota, ...facturas]);
+    toast.success('Nota de cargo generada y timbrada exitosamente');
+    setIsNotaCargoOpen(false);
+    setSelectedFactura(null);
+    setNotaData({ motivo: '', monto: 0, descripcion: '' });
+  };
+
   const handleTimbrarPendiente = (factura: Factura) => {
     setFacturas(facturas.map(f => 
       f.id === factura.id 
@@ -273,7 +355,7 @@ export function Facturacion() {
     <>
       <div className="grid gap-2">
         <Label htmlFor="cliente">Cliente *</Label>
-        <Select value={formData.cliente} onValueChange={(value: string) => {
+        <Select value={formData.cliente} onValueChange={(value: any) => {
           const rfcMap: Record<string, string> = {
             'Transportes del Norte': 'ABC123456789',
             'Logística Express': 'DEF987654321',
@@ -297,7 +379,7 @@ export function Facturacion() {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="tipoVenta">Tipo de Venta *</Label>
-          <Select value={formData.tipo} onValueChange={(value: string) => setFormData({ ...formData, tipo: value, mototaxiId: 0, refaccionId: 0, total: 0 })}>
+          <Select value={formData.tipo} onValueChange={(value: any) => setFormData({ ...formData, tipo: value, mototaxiId: 0, refaccionId: 0, total: 0 })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -310,7 +392,7 @@ export function Facturacion() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="usoCFDI">Uso CFDI *</Label>
-          <Select value={formData.usoCFDI} onValueChange={(value: string) => setFormData({ ...formData, usoCFDI: value })}>
+          <Select value={formData.usoCFDI} onValueChange={(value: any) => setFormData({ ...formData, usoCFDI: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -329,7 +411,7 @@ export function Facturacion() {
           <Label htmlFor="mototaxi">Seleccionar Mototaxi *</Label>
           <Select 
             value={formData.mototaxiId.toString()} 
-            onValueChange={(value: string) => setFormData({ ...formData, mototaxiId: parseInt(value) })}
+            onValueChange={(value: any) => setFormData({ ...formData, mototaxiId: parseInt(value) })}
           >
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar mototaxi" />
@@ -367,7 +449,7 @@ export function Facturacion() {
           <Label htmlFor="refaccion">Seleccionar Refacción *</Label>
           <Select 
             value={formData.refaccionId.toString()} 
-            onValueChange={(value: string) => setFormData({ ...formData, refaccionId: parseInt(value) })}
+            onValueChange={(value: any) => setFormData({ ...formData, refaccionId: parseInt(value) })}
           >
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar refacción" />
@@ -401,7 +483,7 @@ export function Facturacion() {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="formaPago">Forma de Pago</Label>
-          <Select value={formData.formaPago} onValueChange={(value: string) => setFormData({ ...formData, formaPago: value })}>
+          <Select value={formData.formaPago} onValueChange={(value: any) => setFormData({ ...formData, formaPago: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -415,7 +497,7 @@ export function Facturacion() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="metodoPago">Método de Pago</Label>
-          <Select value={formData.metodoPago} onValueChange={(value: string) => setFormData({ ...formData, metodoPago: value })}>
+          <Select value={formData.metodoPago} onValueChange={(value: any) => setFormData({ ...formData, metodoPago: value })}>
             <SelectTrigger className={isMobile ? "h-11" : ""}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -540,6 +622,28 @@ export function Facturacion() {
               >
                 <Download className="h-4 w-4" />
               </Button>
+              {hasPermission('facturacion.create') && !factura.tipo.includes('Nota') && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-9 w-9 text-orange-600"
+                    onClick={() => openNotaCreditoDialog(factura)}
+                    title="Nota de Crédito"
+                  >
+                    <MinusCircle className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-9 w-9 text-blue-600"
+                    onClick={() => openNotaCargoDialog(factura)}
+                    title="Nota de Cargo"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
               {hasPermission('facturacion.cancel') && (
                 <Button 
                   variant="ghost" 
@@ -784,6 +888,28 @@ export function Facturacion() {
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
+                              {hasPermission('facturacion.create') && !factura.tipo.includes('Nota') && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                    onClick={() => openNotaCreditoDialog(factura)}
+                                    title="Generar Nota de Crédito"
+                                  >
+                                    <MinusCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => openNotaCargoDialog(factura)}
+                                    title="Generar Nota de Cargo"
+                                  >
+                                    <PlusCircle className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                               {hasPermission('facturacion.cancel') && (
                                 <Button 
                                   variant="ghost" 
@@ -1006,7 +1132,7 @@ export function Facturacion() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="motivo">Motivo de Cancelación *</Label>
-              <Select value={cancelData.motivo} onValueChange={(value: string) => setCancelData({ ...cancelData, motivo: value })}>
+              <Select value={cancelData.motivo} onValueChange={(value: any) => setCancelData({ ...cancelData, motivo: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar motivo" />
                 </SelectTrigger>
@@ -1041,6 +1167,320 @@ export function Facturacion() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Nota de Crédito Dialog */}
+      {isMobile ? (
+        <Sheet open={isNotaCreditoOpen} onOpenChange={setIsNotaCreditoOpen}>
+          <SheetContent side="bottom" className="h-[85vh] bg-white">
+            <SheetHeader>
+              <SheetTitle className="text-[#1E293B] flex items-center gap-2">
+                <MinusCircle className="h-5 w-5 text-orange-600" />
+                Generar Nota de Crédito
+              </SheetTitle>
+              <SheetDescription>
+                {selectedFactura && `Factura de referencia: ${selectedFactura.folio}`}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-4 py-6">
+              {selectedFactura && (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-sm text-[#1E293B] mb-2">Factura Original:</p>
+                  <div className="text-xs text-[#64748B] space-y-1">
+                    <p><span className="font-medium">Folio:</span> {selectedFactura.folio}</p>
+                    <p><span className="font-medium">Cliente:</span> {selectedFactura.cliente}</p>
+                    <p><span className="font-medium">Total:</span> ${selectedFactura.total.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="motivo-nc">Motivo *</Label>
+                <Select value={notaData.motivo} onValueChange={(value: any) => setNotaData({ ...notaData, motivo: value })}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Seleccionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01">01 - Devolución de mercancía</SelectItem>
+                    <SelectItem value="02">02 - Descuento o bonificación</SelectItem>
+                    <SelectItem value="03">03 - Anulación de operación</SelectItem>
+                    <SelectItem value="04">04 - Descuento por pronto pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="monto-nc">Monto a Acreditar *</Label>
+                <Input 
+                  id="monto-nc"
+                  type="number"
+                  placeholder="0.00"
+                  value={notaData.monto || ''}
+                  onChange={(e) => setNotaData({ ...notaData, monto: parseFloat(e.target.value) || 0 })}
+                  className="h-11"
+                />
+                {selectedFactura && notaData.monto > 0 && (
+                  <p className="text-xs text-[#64748B]">
+                    Máximo: ${selectedFactura.total.toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="descripcion-nc">Descripción *</Label>
+                <Textarea 
+                  id="descripcion-nc"
+                  placeholder="Descripción del motivo de la nota de crédito..."
+                  value={notaData.descripcion}
+                  onChange={(e) => setNotaData({ ...notaData, descripcion: e.target.value })}
+                  rows={4}
+                />
+              </div>
+            </div>
+            <SheetFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsNotaCreditoOpen(false)}
+                className="flex-1 h-11"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCrearNotaCredito}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white h-11"
+              >
+                <MinusCircle className="h-4 w-4 mr-2" />
+                Generar y Timbrar
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isNotaCreditoOpen} onOpenChange={setIsNotaCreditoOpen}>
+          <DialogContent className="bg-white sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-[#1E293B] flex items-center gap-2">
+                <MinusCircle className="h-5 w-5 text-orange-600" />
+                Generar Nota de Crédito
+              </DialogTitle>
+              <DialogDescription>
+                {selectedFactura && `Factura de referencia: ${selectedFactura.folio}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {selectedFactura && (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-sm text-[#1E293B] mb-2">Factura Original:</p>
+                  <div className="text-xs text-[#64748B] space-y-1">
+                    <p><span className="font-medium">Folio:</span> {selectedFactura.folio}</p>
+                    <p><span className="font-medium">Cliente:</span> {selectedFactura.cliente}</p>
+                    <p><span className="font-medium">Total:</span> ${selectedFactura.total.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="motivo-nc-desktop">Motivo *</Label>
+                <Select value={notaData.motivo} onValueChange={(value: any) => setNotaData({ ...notaData, motivo: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01">01 - Devolución de mercancía</SelectItem>
+                    <SelectItem value="02">02 - Descuento o bonificación</SelectItem>
+                    <SelectItem value="03">03 - Anulación de operación</SelectItem>
+                    <SelectItem value="04">04 - Descuento por pronto pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="monto-nc-desktop">Monto a Acreditar *</Label>
+                <Input 
+                  id="monto-nc-desktop"
+                  type="number"
+                  placeholder="0.00"
+                  value={notaData.monto || ''}
+                  onChange={(e) => setNotaData({ ...notaData, monto: parseFloat(e.target.value) || 0 })}
+                />
+                {selectedFactura && notaData.monto > 0 && (
+                  <p className="text-xs text-[#64748B]">
+                    Máximo: ${selectedFactura.total.toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="descripcion-nc-desktop">Descripción *</Label>
+                <Textarea 
+                  id="descripcion-nc-desktop"
+                  placeholder="Descripción del motivo de la nota de crédito..."
+                  value={notaData.descripcion}
+                  onChange={(e) => setNotaData({ ...notaData, descripcion: e.target.value })}
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNotaCreditoOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCrearNotaCredito}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <MinusCircle className="h-4 w-4 mr-2" />
+                Generar y Timbrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Nota de Cargo Dialog */}
+      {isMobile ? (
+        <Sheet open={isNotaCargoOpen} onOpenChange={setIsNotaCargoOpen}>
+          <SheetContent side="bottom" className="h-[85vh] bg-white">
+            <SheetHeader>
+              <SheetTitle className="text-[#1E293B] flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-blue-600" />
+                Generar Nota de Cargo
+              </SheetTitle>
+              <SheetDescription>
+                {selectedFactura && `Factura de referencia: ${selectedFactura.folio}`}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-4 py-6">
+              {selectedFactura && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-[#1E293B] mb-2">Factura Original:</p>
+                  <div className="text-xs text-[#64748B] space-y-1">
+                    <p><span className="font-medium">Folio:</span> {selectedFactura.folio}</p>
+                    <p><span className="font-medium">Cliente:</span> {selectedFactura.cliente}</p>
+                    <p><span className="font-medium">Total:</span> ${selectedFactura.total.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="motivo-nd">Motivo *</Label>
+                <Select value={notaData.motivo} onValueChange={(value: any) => setNotaData({ ...notaData, motivo: value })}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Seleccionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01">01 - Intereses moratorios</SelectItem>
+                    <SelectItem value="02">02 - Cargo por flete adicional</SelectItem>
+                    <SelectItem value="03">03 - Servicios adicionales</SelectItem>
+                    <SelectItem value="04">04 - Corrección de precio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="monto-nd">Monto a Cargar *</Label>
+                <Input 
+                  id="monto-nd"
+                  type="number"
+                  placeholder="0.00"
+                  value={notaData.monto || ''}
+                  onChange={(e) => setNotaData({ ...notaData, monto: parseFloat(e.target.value) || 0 })}
+                  className="h-11"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="descripcion-nd">Descripción *</Label>
+                <Textarea 
+                  id="descripcion-nd"
+                  placeholder="Descripción del motivo de la nota de cargo..."
+                  value={notaData.descripcion}
+                  onChange={(e) => setNotaData({ ...notaData, descripcion: e.target.value })}
+                  rows={4}
+                />
+              </div>
+            </div>
+            <SheetFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsNotaCargoOpen(false)}
+                className="flex-1 h-11"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCrearNotaCargo}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-11"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Generar y Timbrar
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isNotaCargoOpen} onOpenChange={setIsNotaCargoOpen}>
+          <DialogContent className="bg-white sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-[#1E293B] flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-blue-600" />
+                Generar Nota de Cargo
+              </DialogTitle>
+              <DialogDescription>
+                {selectedFactura && `Factura de referencia: ${selectedFactura.folio}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {selectedFactura && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-[#1E293B] mb-2">Factura Original:</p>
+                  <div className="text-xs text-[#64748B] space-y-1">
+                    <p><span className="font-medium">Folio:</span> {selectedFactura.folio}</p>
+                    <p><span className="font-medium">Cliente:</span> {selectedFactura.cliente}</p>
+                    <p><span className="font-medium">Total:</span> ${selectedFactura.total.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="motivo-nd-desktop">Motivo *</Label>
+                <Select value={notaData.motivo} onValueChange={(value: any) => setNotaData({ ...notaData, motivo: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01">01 - Intereses moratorios</SelectItem>
+                    <SelectItem value="02">02 - Cargo por flete adicional</SelectItem>
+                    <SelectItem value="03">03 - Servicios adicionales</SelectItem>
+                    <SelectItem value="04">04 - Corrección de precio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="monto-nd-desktop">Monto a Cargar *</Label>
+                <Input 
+                  id="monto-nd-desktop"
+                  type="number"
+                  placeholder="0.00"
+                  value={notaData.monto || ''}
+                  onChange={(e) => setNotaData({ ...notaData, monto: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="descripcion-nd-desktop">Descripción *</Label>
+                <Textarea 
+                  id="descripcion-nd-desktop"
+                  placeholder="Descripción del motivo de la nota de cargo..."
+                  value={notaData.descripcion}
+                  onChange={(e) => setNotaData({ ...notaData, descripcion: e.target.value })}
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNotaCargoOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCrearNotaCargo}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Generar y Timbrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

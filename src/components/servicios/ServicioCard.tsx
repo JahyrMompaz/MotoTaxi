@@ -33,7 +33,7 @@ export function ServicioCard({
             <Wrench className="h-5 w-5 text-[#B02128]" />
             <div className="flex-1">
               <h3 className="text-[#1E293B] mb-1">{servicio.tipo}</h3>
-              <p className="text-xs text-[#64748B] mb-2">{servicio.cliente}</p>
+              <p className="text-xs text-[#64748B] mb-2">{servicio.cliente_id}</p>
               <Badge className={`${getStatusColor(servicio.estatus)} flex items-center gap-1 w-fit text-xs`}>
                 {getStatusIcon(servicio.estatus)}
                 <span>{servicio.estatus}</span>
@@ -48,11 +48,11 @@ export function ServicioCard({
             </div>
             <div className="flex items-center gap-2 text-xs text-[#64748B]">
               <Calendar className="h-3.5 w-3.5" />
-              <span>{servicio.fecha}</span>
+              <span>{servicio.fecha_ingreso}</span>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <DollarSign className="h-3.5 w-3.5 text-[#B02128]" />
-              <span className="text-[#B02128]">${servicio.costo.toLocaleString()}</span>
+              <span className="text-[#B02128]">${servicio.costo_real.toLocaleString()}</span>
             </div>
           </div>
         </div>
