@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Shield, Building2, FileKey, Users } from "lucide-react";
+import { use, useEffect, useState } from "react";
+import { Shield, Building2, FileKey, Users, Edit } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Dialog, DialogContent, DialogDescription,
@@ -30,6 +30,7 @@ export function Configuracion() {
 
   const [newUser, setNewUser] = useState({
     nombre: "",
+    username: "",
     email: "",
     password: "",
     role_id: "",
@@ -37,6 +38,7 @@ export function Configuracion() {
 
   // Configuración general
   const [config, setConfig] = useState<any>({});
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   // Campos del formulario fiscal
   const [razonSocial, setRazonSocial] = useState("");
@@ -68,6 +70,27 @@ export function Configuracion() {
     loadUsuarios();
     loadConfig();
   }, []);
+
+  useEffect(() => {
+  if (selectedUser) {
+    setNewUser({
+      nombre: selectedUser.nombre,
+      username: selectedUser.username,
+      email: selectedUser.email,
+      password: "",
+      role_id: selectedUser.role_id,
+    });
+  } else {
+    setNewUser({
+      nombre: "",
+      username: "",
+      email: "",
+      password: "",
+      role_id: "",
+    });
+  }
+}, [selectedUser, isAddUserOpen]);
+
 
   async function loadUsuarios() {
     try {
@@ -181,13 +204,40 @@ export function Configuracion() {
 
       toast.success("Usuario creado");
       setIsAddUserOpen(false);
-      setNewUser({ nombre: "", email: "", password: "", role_id: "" });
+      setNewUser({ nombre: "", username: "" , email: "", password: "", role_id: "" });
       loadUsuarios();
 
     } catch {
       toast.error("No se pudo crear el usuario");
     }
   }
+
+  async function actualizarUsuario() {
+  try {
+    if (!selectedUser.nombre || !selectedUser.username || !selectedUser.email || !selectedUser.role?.id) {
+      toast.error("Completa todos los campos");
+      return;
+    }
+
+    const payload = {
+      nombre: selectedUser.nombre,
+      username: selectedUser.username,
+      email: selectedUser.email,
+      role_id: selectedUser.role.id,  // <-- ESTA ES LA CORRECTA
+      password: newUser.password || null,
+    };
+
+    await ConfiguracionService.actualizarUsuario(selectedUser.id, payload);
+
+    toast.success("Usuario actualizado");
+    setIsAddUserOpen(false);
+    setSelectedUser(null);
+    loadUsuarios();
+  } catch {
+    toast.error("No se pudo actualizar el usuario");
+  }
+}
+
 
   // ─────────────────────────────────────────────────────────────
   // RENDER (DISEÑO NO MODIFICADO)
@@ -206,14 +256,14 @@ export function Configuracion() {
             <Users className="h-4 w-4" />
             Usuarios
           </TabsTrigger>
-          <TabsTrigger value="empresa" className="gap-2">
+          {/* <TabsTrigger value="empresa" className="gap-2">
             <Building2 className="h-4 w-4" />
             Datos Fiscales
           </TabsTrigger>
           <TabsTrigger value="facturacion" className="gap-2">
             <FileKey className="h-4 w-4" />
             Configuración CFDI
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="seguridad" className="gap-2">
             <Shield className="h-4 w-4" />
             Seguridad
@@ -235,7 +285,7 @@ export function Configuracion() {
                 </div>
                 <Button
                   className="bg-[#B02128] hover:bg-[#8B1A20] text-white"
-                  onClick={() => setIsAddUserOpen(true)}
+                  onClick={() => {setIsAddUserOpen(true) ; setSelectedUser(null);}}
                 >
                   Agregar Usuario
                 </Button>
@@ -247,6 +297,7 @@ export function Configuracion() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
+                      <TableHead>Username</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Rol</TableHead>
                       <TableHead>Estado</TableHead>
@@ -257,6 +308,7 @@ export function Configuracion() {
                     {usuarios.map((usuario: any) => (
                       <TableRow key={usuario.id}>
                         <TableCell className="text-[#1E293B]">{usuario.nombre}</TableCell>
+                        <TableCell className="text-[#64748B]">{usuario.username}</TableCell>
                         <TableCell className="text-[#64748B]">{usuario.email}</TableCell>
                         <TableCell>
                           <Badge
@@ -294,7 +346,17 @@ export function Configuracion() {
                               }
                             }}
                           >
-                            Cambiar Estado
+                            Desactivar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedUser(usuario);
+                              setIsAddUserOpen(true);
+                            }}
+                          >
+                            <Edit className="h-2 w-2"></Edit>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -470,7 +532,7 @@ export function Configuracion() {
             <CardContent className="space-y-4">
 
               {/* Opciones de Seguridad (Switches del diseño original, no funcionales aún) */}
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
@@ -496,7 +558,7 @@ export function Configuracion() {
                   <Switch defaultChecked />
                 </div>
 
-              </div>
+              </div> */}
 
               {/* Cambio de Contraseña */}
               <div className="border-t pt-4">
@@ -553,11 +615,11 @@ export function Configuracion() {
       {/* ───────────────────────────────────────────
           DIALOG: NUEVO USUARIO
       ─────────────────────────────────────────── */}
-      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} >
         <DialogContent className="sm:max-w-[500px] bg-white">
           <DialogHeader>
-            <DialogTitle>Agregar Usuario</DialogTitle>
-            <DialogDescription>Registrar un nuevo usuario del sistema</DialogDescription>
+            <DialogTitle>{ !selectedUser ? "Agregar Usuario" : "Actualizar Usuario" }</DialogTitle>
+            <DialogDescription>{!selectedUser ? "Registrar un nuevo usuario del sistema" : "Actualizar un usuario del sistema" }</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
@@ -569,6 +631,15 @@ export function Configuracion() {
                 onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label>Username</Label>
+              <Input
+                value={newUser.username}
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+              />
+            </div>
+
 
             <div className="grid gap-2">
               <Label>Email</Label>
@@ -610,8 +681,8 @@ export function Configuracion() {
             <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
               Cancelar
             </Button>
-            <Button className="bg-[#B02128] text-white" onClick={crearUsuario}>
-              Guardar Usuario
+            <Button className="bg-[#B02128] text-white" onClick={selectedUser ? actualizarUsuario: crearUsuario} >
+              {selectedUser ? "Actualizar Usuario" : "Crear Usuario"}
             </Button>
           </DialogFooter>
         </DialogContent>
