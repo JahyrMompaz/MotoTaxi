@@ -33,7 +33,7 @@ export function ClientesTable({ clientes, onEdit, onDelete }: Props) {
               <TableCell>{c.nombre}</TableCell>
               <TableCell>{c.email}</TableCell>
               <TableCell>{c.telefono}</TableCell>
-              <TableCell>{c.created_at}</TableCell>
+              <TableCell>{new Date(c.created_at).toLocaleDateString('es-MX')}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   {hasPermission("clientes.edit") && (

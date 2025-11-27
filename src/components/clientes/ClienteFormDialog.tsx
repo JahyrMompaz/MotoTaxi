@@ -22,15 +22,16 @@ export function ClienteFormDialog({ open, onOpenChange, onSave, editing }: Props
     telefono: "",
     created_at: "",
     codigo_postal: "",
+    regimen_fiscal: "",
   });
 
   useEffect(() => {
     if (editing) setFormData(editing);
-    else setFormData({ id: 0, rfc: "", nombre: "", email: "", telefono: "", created_at: "", codigo_postal: "" });
+    else setFormData({ id: 0, rfc: "", nombre: "", email: "", telefono: "",regimen_fiscal: "", created_at: "", codigo_postal: "" });
   }, [editing]);
 
   const handleSubmit = () => {
-    if (!formData.rfc || !formData.nombre || !formData.email || !formData.codigo_postal) {
+    if (!formData.rfc || !formData.nombre || !formData.email || !formData.codigo_postal || !formData.regimen_fiscal) {
     toast.error("Por favor, complete todos los campos obligatorios.");
         return
         };
@@ -58,8 +59,16 @@ export function ClienteFormDialog({ open, onOpenChange, onSave, editing }: Props
             <Label>Razón Social *</Label>
             <Input
               value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              placeholder="Empresa S.A. de C.V."
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value.toUpperCase() })}
+              placeholder="EMPLESA MOTOTAXI"
+            />
+          </div>
+          <div>
+            <Label>Regimen Fiscal *</Label>
+            <Input
+              value={formData.regimen_fiscal}
+              onChange={(e) => setFormData({ ...formData, regimen_fiscal: e.target.value })}
+              placeholder="616 - General de Ley Personas Morales"
             />
           </div>
           <div>

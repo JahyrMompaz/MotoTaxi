@@ -265,6 +265,7 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
               <SelectItem value="G01">G01 - Venta de mercancia</SelectItem>
               <SelectItem value="G03">G03 - Gastos en general</SelectItem>
               <SelectItem value="P01">P01 - Por definir</SelectItem>
+              <SelectItem value="S01">S01 - Sin efectos Fiscales</SelectItem>
             </SelectContent>
           </Select>
         </div>

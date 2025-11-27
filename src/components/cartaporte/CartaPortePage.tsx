@@ -18,8 +18,9 @@ import { downloadCartaPortePDF } from "./cartaPorteService";
 import { useAuth } from "../AuthContext";
 import { useIsMobile } from "../ui/use-mobile";
 
-import { getCartasPorte, createCartaPorte } from "./cartaPorteService";
+import { getCartasPorte, createCartaPorte, updateCartaPorte } from "./cartaPorteService";
 import { getFacturasTimbradas } from "../facturacion/FacturaService";
+import { toast } from "sonner";
 
 import { CartaPorte, CartaPorteFormData , CartaPortePayload, FacturaTimbrada } from "./types";
 
@@ -66,6 +67,7 @@ export function CartaPortePage() {
       setCartasPorte(data); // paginación Laravel
     } catch (error) {
       console.error("Error al cargar cartas porte:", error);
+      toast.error("Error al cargar las cartas porte");
     }
   };
 
@@ -105,45 +107,68 @@ export function CartaPortePage() {
     });
   };
 
+  const handleCambiarEstatus = async (id: number, nuevoEstatus: string) => {
+    if (!confirm(`¿Cambiar estatus a "${nuevoEstatus}"?`)) return;
+
+    try {
+      await updateCartaPorte(id, { estatus: nuevoEstatus });
+      toast.success(`Estatus actualizado a: ${nuevoEstatus}`);
+      await loadCartas();
+      
+      // Actualizar la carta seleccionada también
+      if (selectedCarta && selectedCarta.id === id) {
+        setSelectedCarta({ ...selectedCarta, estatus: nuevoEstatus as any });
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Error al cambiar estatus");
+    }
+  };
+
   // ------------------------------------------------------------
   // Crear Carta Porte real
   // ------------------------------------------------------------
   const handleCreate = async () => {
-    const payload = {
-      origen: formData.origen,
-      destino: formData.destino,
+  // Validación básica
+  if (!formData.origen || !formData.destino || !formData.choferNombre) {
+    toast.error("Por favor completa todos los campos obligatorios");
+    return;
+  }
 
-      chofer_nombre: formData.choferNombre,
-      chofer_rfc: formData.choferRFC,
-      chofer_licencia: formData.choferLicencia,
+  if (formData.facturasSeleccionadas.length === 0) {
+    toast.error("Debes seleccionar al menos una factura");
+    return;
+  }
 
-      vehiculo_placas: formData.vehiculoPlacas,
-      vehiculo_modelo: formData.vehiculoModelo,
-      vehiculo_anio: formData.vehiculoAnio,
-      vehiculo_configuracion: formData.vehiculoConfiguracion,
-
-      fecha_salida: formData.fechaSalida,
-      hora_salida: formData.horaSalida,
-
-      distancia_km: Number(formData.distanciaKm),
-
-      observaciones: formData.observaciones,
-
-      estatus: "Pendiente",
-
-      factura_ids: formData.facturasSeleccionadas.map((id) => Number(id)),
-    };
-
-    try {
-      await createCartaPorte(payload);
-      await loadCartas();
-      setIsCreateOpen(false);
-      resetForm();
-    } catch (err) {
-      console.error(err);
-      alert("Error al crear Carta Porte");
-    }
+  const payload: CartaPortePayload = {
+    origen: formData.origen,
+    destino: formData.destino,
+    chofer_nombre: formData.choferNombre,
+    chofer_rfc: formData.choferRFC || null,
+    chofer_licencia: formData.choferLicencia,
+    vehiculo_placas: formData.vehiculoPlacas,
+    vehiculo_modelo: formData.vehiculoModelo,
+    vehiculo_anio: formData.vehiculoAnio || null,
+    vehiculo_configuracion: formData.vehiculoConfiguracion || null,
+    fecha_salida: formData.fechaSalida,
+    hora_salida: formData.horaSalida || null,
+    distancia_km: Number(formData.distanciaKm) || 0,
+    observaciones: formData.observaciones || null,
+    estatus: "Pendiente",
+    factura_ids: formData.facturasSeleccionadas.map((id) => Number(id)),
   };
+
+  try {
+    await createCartaPorte(payload);
+    toast.success("Carta Porte creada exitosamente");
+    await loadCartas();
+    setIsCreateOpen(false);
+    resetForm();
+  } catch (error: any) {
+    console.error(error);
+    toast.error(error.message || "Error al crear Carta Porte");
+  }
+};
 
   // ------------------------------------------------------------
   // Utilidades UI
@@ -305,28 +330,58 @@ export function CartaPortePage() {
       )}
 
       {/* ------------------------------------------------------------------
-          DIALOG DE VISTA DETALLADA (PDF STYLE)
-      ------------------------------------------------------------------ */}
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-[900px] bg-white max-h-[90vh] overflow-y-auto">
+    DIALOG DE VISTA DETALLADA (PDF STYLE)
+------------------------------------------------------------------ */}
+<Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+  <DialogContent className="max-w-[900px] bg-white max-h-[90vh] overflow-y-auto">
 
-          {selectedCarta && (
-  <CartaPorteView
-    carta={selectedCarta}
-    getStatusColor={getStatusColor}
-    getStatusIcon={getStatusIcon}
-  />
-)}
+    {selectedCarta && (
+      <CartaPorteView
+        carta={selectedCarta}
+        getStatusColor={getStatusColor}
+        getStatusIcon={getStatusIcon}
+      />
+    )}
 
+    <DialogFooter>
+  {selectedCarta && selectedCarta.estatus === "Pendiente" && (
+    <Button 
+      className="bg-blue-600 hover:bg-blue-700 text-white"
+      onClick={() => handleCambiarEstatus(selectedCarta.id, "En Transito")}
+    >
+      <Truck className="h-4 w-4 mr-2" />
+      Marcar En Tránsito
+    </Button>
+  )}
+  
+  {selectedCarta && selectedCarta.estatus === "En Transito" && (
+    <Button 
+      className="bg-green-600 hover:bg-green-700 text-white"
+      onClick={() => handleCambiarEstatus(selectedCarta.id, "Entregada")}
+    >
+      <CheckCircle className="h-4 w-4 mr-2" />
+      Marcar Entregada
+    </Button>
+  )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
-              Cerrar
-            </Button>
-          </DialogFooter>
+  {selectedCarta && selectedCarta.estatus !== "Cancelada" && (
+    <Button
+      variant="outline"
+      className="text-red-600 hover:bg-red-50"
+      onClick={() => handleCambiarEstatus(selectedCarta.id, "Cancelada")}
+    >
+      <XCircle className="h-4 w-4 mr-2" />
+      Cancelar
+    </Button>
+  )}
+  
+  <Button variant="outline" onClick={() => setIsViewOpen(false)}>
+    Cerrar
+  </Button>
+</DialogFooter>
 
-        </DialogContent>
-      </Dialog>
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export function CartaPorteTable({ cartas, isMobile, onView }: Props) {
     switch (estatus) {
       case "Pendiente":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "En Tránsito":
+      case "En Transito":
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "Entregada":
         return "bg-green-100 text-green-800 border-green-200";
@@ -48,7 +48,7 @@ export function CartaPorteTable({ cartas, isMobile, onView }: Props) {
     switch (estatus) {
       case "Pendiente":
         return <Clock className="h-3 w-3" />;
-      case "En Tránsito":
+      case "En Transito":
         return <Truck className="h-3 w-3" />;
       case "Entregada":
         return <CheckCircle className="h-3 w-3" />;
@@ -228,6 +228,8 @@ export function CartaPorteTable({ cartas, isMobile, onView }: Props) {
                       <Download className="h-4 w-4" />
                     </Button>
                   )}
+
+
                 </div>
               </TableCell>
             </TableRow>

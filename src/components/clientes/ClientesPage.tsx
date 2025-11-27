@@ -18,6 +18,7 @@ export interface Cliente {
   telefono: string;
   created_at: string;
   codigo_postal: string;
+  regimen_fiscal?: string;
   uso_cfdi_default?: string;
   direccion?: string;
 }

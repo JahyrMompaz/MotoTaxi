@@ -6,10 +6,15 @@ export interface CartaPorte {
   destino: string;
   choferNombre: string;
   choferLicencia: string;
+  choferRFC: string;
   vehiculoPlacas: string;
   vehiculoModelo: string;
+  vehiculoAnio: string;
+  vehiculoConfiguracion: string;
+  horaSalida: string;
+  observaciones: string;
   facturasVinculadas: string[];
-  estatus: "Pendiente" | "En Tránsito" | "Entregada" | "Cancelada";
+  estatus: "Pendiente" | "En Transito" | "Entregada" | "Cancelada";
   distanciaKm: number;
 }
 
