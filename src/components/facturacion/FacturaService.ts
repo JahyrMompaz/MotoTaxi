@@ -63,17 +63,17 @@ export const FacturaService = {
   /** ============================
    * NOTAS
    * ============================ */
-  async notaCredito(id: number, payload: { motivo: string; monto: number; descripcion: string; uuid_relacionado?: any }) {
-    return http(api(`/facturas/${id}/nota-credito`), {
+  async notaCredito(payload: CrearFacturaPayload): Promise<{ data: FacturaApi }> {
+    return http<{ data: FacturaApi }>(api('/facturas'), {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, tipo: 'Egreso' }),
     });
   },
 
-  async notaCargo(id: number, payload: { motivo: string; monto: number; descripcion: string; uuid_relacionado?: any }) {
-    return http(api(`/facturas/${id}/nota-cargo`), {
+  async notaCargo(payload: CrearFacturaPayload): Promise<{ data: FacturaApi }> {
+    return http<{ data: FacturaApi }>(api('/facturas/nota-cargo'), {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, tipo: 'Nota de Cargo' }),
     });
   },
 

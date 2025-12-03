@@ -1,6 +1,4 @@
-import {
-  Badge
-} from "../ui/badge";
+import { Badge } from "../ui/badge";
 import { JSX } from "react";
 import {
   MapPin,
@@ -8,10 +6,13 @@ import {
   User,
   Package,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
+import { Separator } from "../ui/separator";
 
+// No importamos CartaPorte de types para evitar conflictos, usamos 'any' para máxima flexibilidad
 interface Props {
-  carta: any; // puedes reemplazar con tu interface CartaPorte
+  carta: any; 
   getStatusColor: (status: string) => string;
   getStatusIcon: (status: string) => JSX.Element | null;
 }
@@ -19,258 +20,218 @@ interface Props {
 export function CartaPorteView({ carta, getStatusColor, getStatusIcon }: Props) {
   if (!carta) return null;
 
+  console.log("Datos recibidos en CartaPorteView:", carta); // DEBUG
+
+  // 1. PARSEO ROBUSTO DE MERCANCÍAS
+  let mercanciasList: any[] = [];
+  try {
+    if (Array.isArray(carta.mercancias)) {
+        // Ya es un array (ideal)
+        mercanciasList = carta.mercancias;
+    } else if (typeof carta.mercancias === 'string') {
+        // Es un string JSON, intentamos parsear
+        // A veces viene con comillas escapadas raras, limpiamos si es necesario
+        const jsonString = carta.mercancias;
+        mercanciasList = JSON.parse(jsonString);
+    }
+  } catch (e) {
+    console.error("Error al parsear mercancías:", e, carta.mercancias);
+  }
+
+  // 2. EXTRACCIÓN DE DATOS (BUSCAMOS EN TODAS PARTES)
+  // Vehículo
+  const placas = carta.vehiculoPlacas || carta.vehiculo_placas || carta.placa_vm || 'N/A';
+  const modelo = carta.vehiculoModelo || carta.vehiculo_modelo || carta.anio_modelo_vm || 'N/A';
+  const anio = carta.vehiculoAnio || carta.vehiculo_anio || ''; 
+  const config = carta.vehiculoConfiguracion || carta.vehiculo_configuracion || carta.config_vehicular || 'N/A';
+  const permiso = carta.permisoSCT || carta.permiso_sct || 'N/A';
+  const numPermiso = carta.numPermisoSCT || carta.num_permiso_sct || carta.num_permiso || 'N/A';
+  
+  // Operador
+  const chofer = carta.choferNombre || carta.chofer_nombre || carta.operador_nombre || 'N/A';
+  const rfcChofer = carta.choferRFC || carta.chofer_rfc || carta.operador_rfc || 'N/A';
+  const licencia = carta.choferLicencia || carta.chofer_licencia || carta.operador_licencia || 'N/A';
+  
+  // Seguro
+  const aseguradora = carta.aseguraNombre || carta.asegura_nombre || carta.seguro_nombre || carta.asegura_resp_civil || 'N/A';
+  const poliza = carta.polizaNumero || carta.poliza_numero || carta.seguro_poliza || carta.poliza_resp_civil || 'N/A';
+
+  // Peso
+  const pesoTotal = carta.pesoTotal || carta.peso_total || carta.peso_bruto_total || 0;
+
   return (
-    <div className="py-4">
-      {/* Documento estilo PDF */}
-      <div className="bg-white border-2 border-gray-300 p-6 space-y-4">
+    <div className="py-4 font-sans text-slate-800">
+      
+      {/* HOJA ESTILO CARTA */}
+      <div className="bg-white border border-gray-300 shadow-sm p-8 space-y-6 max-w-4xl mx-auto">
 
-        {/* ===========================
-            HEADER — LOGO + EMISOR
-        ============================ */}
-        <div className="flex justify-between items-start border-b-2 border-[#B02128] pb-4">
-
-          {/* Izquierda: Logo + Empresa */}
+        {/* --- HEADER --- */}
+        <div className="flex justify-between items-start border-b-2 border-[#B02128] pb-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="bg-[#B02128] rounded-lg p-2">
-                <Truck className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl text-[#1E293B]">Mototaxis Pro SA de CV</h2>
-                <p className="text-xs text-[#64748B]">
-                  Transporte de Mototaxis y Refacciones
-                </p>
-              </div>
-            </div>
-
-            <div className="text-xs text-[#64748B] space-y-0.5">
-              <p>RFC: MPR120515ABC</p>
-              <p>Régimen Fiscal: 601 - General de Ley Personas Morales</p>
+            <h1 className="text-2xl font-bold text-[#B02128] uppercase tracking-wide">Mototaxis Pro</h1>
+            <div className="text-xs text-gray-500 mt-2 space-y-1">
+              <p><strong className="text-gray-700">RFC:</strong> MPR120515ABC</p>
+              <p><strong className="text-gray-700">Régimen:</strong> 601 - General de Ley PM</p>
               <p>Av. Principal 1000, Col. Centro, CP 64000</p>
               <p>Monterrey, Nuevo León, México</p>
             </div>
           </div>
 
-          {/* Derecha: Folio + Datos */}
           <div className="text-right">
-            <Badge className={`${getStatusColor(carta.estatus)} mb-2`}>
-              {getStatusIcon(carta.estatus)}
-              <span className="ml-1">{carta.estatus}</span>
-            </Badge>
-
-            <div className="text-xs text-[#64748B] space-y-1">
-              <p className="text-[#1E293B] uppercase">Complemento Carta Porte 2.0</p>
-              <p className="text-lg text-[#B02128]">{carta.folio}</p>
-              <p className="text-[#64748B]">Fecha: {carta.fecha}</p>
-              <p className="text-[#64748B]">Hora: {carta.horaSalida ?? "08:00:00"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ===========================
-            INFORMACIÓN DEL AUTOTRANSPORTE
-        ============================ */}
-        <div className="border border-gray-300 rounded p-3">
-          <h3 className="text-xs uppercase text-[#64748B] mb-3 bg-[#1E293B] text-white px-3 py-2 -m-3 rounded-t">
-            Información del Autotransporte Federal
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-[#64748B]">Permiso SCT:</p>
-              <p className="text-[#1E293B]">TPAF01 - Autotransporte Federal de Carga</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#64748B]">Número de Permiso:</p>
-              <p className="text-[#1E293B]">12345678</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ===========================
-            UBICACIONES
-        ============================ */}
-        <div className="border border-gray-300 rounded p-3">
-          <h3 className="text-xs uppercase text-[#64748B] mb-3 bg-green-600 text-white px-3 py-2 -m-3 rounded-t flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Ubicaciones de Origen y Destino
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* ORIGEN */}
-            <div className="border-l-4 border-green-500 pl-3">
-              <p className="text-xs uppercase text-green-700 mb-2">Origen</p>
-              <div className="text-sm space-y-1">
-                <p className="text-[#1E293B]">{carta.origen}</p>
-
-                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                  <div>
-                    <p className="text-[#64748B]">Fecha/Hora Salida:</p>
-                    <p className="text-[#1E293B]">
-                      {carta.fecha} {carta.horaSalida ?? "08:00"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* DESTINO */}
-            <div className="border-l-4 border-red-500 pl-3">
-              <p className="text-xs uppercase text-red-700 mb-2">Destino</p>
-              <div className="text-sm space-y-1">
-                <p className="text-[#1E293B]">{carta.destino}</p>
-                <p className="text-xs text-[#64748B]">
-                  Distancia Total: {carta.distanciaKm} km
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                  <div>
-                    <p className="text-[#64748B]">Fecha/Hora Llegada Est.:</p>
-                    <p className="text-[#1E293B]">
-                      {carta.fecha} 18:00
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ===========================
-            VEHÍCULO
-        ============================ */}
-        <div className="border border-gray-300 rounded overflow-hidden">
-          <h3 className="text-xs uppercase text-white bg-[#1E293B] px-3 py-2 flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            Identificación Vehicular
-          </h3>
-
-          <div className="p-3 grid grid-cols-3 gap-3 text-sm">
-            <div>
-              <p className="text-xs text-[#64748B]">Configuración Vehicular:</p>
-              <p className="text-[#1E293B]">
-                {carta.vehiculoConfiguracion}
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Carta Porte 3.1</h2>
+            <div className="text-xl font-bold text-[#1E293B] mt-1">{carta.folio}</div>
+            
+            <div className="mt-3 flex flex-col items-end gap-1">
+              <Badge className={`${getStatusColor(carta.estatus)} px-3 py-1 rounded-full text-[10px]`}>
+                {getStatusIcon(carta.estatus)}
+                <span className="ml-1 uppercase">{carta.estatus}</span>
+              </Badge>
+              <p className="text-xs text-gray-500 mt-1">
+                <strong>Fecha:</strong> {carta.fecha} {carta.horaSalida ? `• ${carta.horaSalida}` : ''}
               </p>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <p className="text-xs text-[#64748B]">Placa Vehicular:</p>
-              <p className="text-[#1E293B]">{carta.vehiculoPlacas}</p>
+        {/* --- SECCIÓN 1: RUTA --- */}
+        <div>
+          <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+            <MapPin className="h-4 w-4 text-[#B02128]"/> Ruta del Transporte
+          </h3>
+          <div className="grid grid-cols-2 gap-8 text-sm">
+            {/* Origen */}
+            <div className="relative pl-4 border-l-2 border-green-500">
+              <span className="absolute -left-[5px] -top-1 h-2 w-2 rounded-full bg-green-500"></span>
+              <p className="text-xs font-bold text-green-700 uppercase mb-1">Origen</p>
+              <p className="font-semibold text-gray-800">{carta.origen}</p>
+              <p className="text-xs text-gray-500 mt-1">Salida: {carta.fecha} {carta.horaSalida}</p>
             </div>
 
-            <div>
-              <p className="text-xs text-[#64748B]">Año Modelo:</p>
-              <p className="text-[#1E293B]">{carta.vehiculoAnio}</p>
-            </div>
-
-            <div className="col-span-2">
-              <p className="text-xs text-[#64748B]">Modelo:</p>
-              <p className="text-[#1E293B]">{carta.vehiculoModelo}</p>
-            </div>
-
-            <div>
-              <p className="text-xs text-[#64748B]">Aseguradora:</p>
-              <p className="text-[#1E293B]">AXA Seguros SA</p>
-            </div>
-
-            <div className="col-span-3">
-              <p className="text-xs text-[#64748B]">Póliza de Seguro:</p>
-              <p className="text-[#1E293B]">POL-2024-987654321</p>
+            {/* Destino */}
+            <div className="relative pl-4 border-l-2 border-red-500">
+              <span className="absolute -left-[5px] -bottom-1 h-2 w-2 rounded-full bg-red-500"></span>
+              <p className="text-xs font-bold text-red-700 uppercase mb-1">Destino</p>
+              <p className="font-semibold text-gray-800">{carta.destino}</p>
+              <p className="text-xs text-gray-500 mt-1">Distancia: {carta.distanciaKm} km</p>
             </div>
           </div>
         </div>
 
-        {/* ===========================
-            OPERADOR
-        ============================ */}
-        <div className="border border-gray-300 rounded overflow-hidden">
-          <h3 className="text-xs uppercase text-white bg-[#1E293B] px-3 py-2 flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Operador del Transporte
+        {/* --- SECCIÓN 2: MERCANCÍAS --- */}
+        <div>
+          <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+            <Package className="h-4 w-4 text-[#B02128]"/> Mercancías
           </h3>
-
-          <div className="p-3 grid grid-cols-3 gap-3 text-sm">
-            <div className="col-span-2">
-              <p className="text-xs text-[#64748B]">Nombre del Operador:</p>
-              <p className="text-[#1E293B]">{carta.choferNombre}</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#64748B]">RFC:</p>
-              <p className="text-[#1E293B]">{carta.choferRFC ?? "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#64748B]">Número de Licencia:</p>
-              <p className="text-[#1E293B]">{carta.choferLicencia}</p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-xs text-[#64748B]">Registro de Identidad Tributaria:</p>
-              <p className="text-[#1E293B]">Residente en México</p>
-            </div>
+          
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                <tr>
+                  <th className="px-4 py-2">Clave SAT</th>
+                  <th className="px-4 py-2">Descripción</th>
+                  <th className="px-4 py-2 text-center">Cant</th>
+                  <th className="px-4 py-2">Unidad</th>
+                  <th className="px-4 py-2 text-right">Peso (kg)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {mercanciasList.length > 0 ? mercanciasList.map((m, idx) => (
+                  <tr key={idx}>
+                    <td className="px-4 py-2 font-mono text-xs">{m.clave_sat || m.BienesTransp}</td>
+                    <td className="px-4 py-2 font-medium text-gray-700">{m.descripcion || m.Descripcion}</td>
+                    <td className="px-4 py-2 text-center">{m.cantidad || m.Cantidad}</td>
+                    <td className="px-4 py-2 text-xs text-gray-500">{m.unidad_sat || m.ClaveUnidad}</td>
+                    <td className="px-4 py-2 text-right font-mono">{m.peso_kg || m.PesoEnKg}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={5} className="px-4 py-4 text-center text-gray-400 italic">Sin mercancías registradas</td></tr>
+                )}
+              </tbody>
+              <tfoot className="bg-gray-50 font-bold text-xs text-gray-700">
+                <tr>
+                  <td colSpan={4} className="px-4 py-2 text-right uppercase">Peso Bruto Total</td>
+                  <td className="px-4 py-2 text-right">{pesoTotal} kg</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
 
-        {/* ===========================
-            CFDIs RELACIONADOS
-        ============================ */}
-        <div className="border border-gray-300 rounded overflow-hidden">
-          <h3 className="text-xs uppercase text-white bg-[#1E293B] px-3 py-2 flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            CFDIs Relacionados
-          </h3>
+        {/* --- SECCIÓN 3: TRANSPORTE Y OPERADOR --- */}
+        <div className="grid grid-cols-2 gap-6">
+          
+          {/* Vehículo */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+              <Truck className="h-4 w-4 text-[#B02128]"/> Vehículo
+            </h3>
+            <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-xs">Placas:</span>
+                <span className="font-mono font-bold">{placas}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-xs">Modelo / Año:</span>
+                <span>{modelo} {anio ? `(${anio})` : ''}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-xs">Configuración:</span>
+                <span>{config}</span>
+              </div>
+              <Separator className="my-2"/>
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-xs">Permiso SCT:</span>
+                <span>{permiso}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-xs">Num. Permiso:</span>
+                <span>{numPermiso}</span>
+              </div>
+            </div>
+          </div>
 
-          <div className="p-3">
-            <div className="space-y-2">
-              {carta.facturasVinculadas.map((folio: string, index: number) => (
-                <div
-                  key={folio}
-                  className="grid grid-cols-4 gap-3 p-3 bg-gray-50 rounded border border-gray-200 text-sm"
-                >
-                  <div>
-                    <p className="text-xs text-[#64748B]">Folio Fiscal:</p>
-                    <p className="text-[#1E293B] text-xs break-all">
-                      A1B2C3D4-E5F6-G7H8-I9J0-K1L2M3N4O5P6
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#64748B]">Serie/Folio:</p>
-                    <p className="text-[#1E293B]">{folio}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#64748B]">Fecha:</p>
-                    <p className="text-[#1E293B]">{carta.fecha}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#64748B]">Estatus:</p>
-                    <Badge variant="outline" className="text-xs">Timbrado</Badge>
-                  </div>
+          {/* Operador y Seguro */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+                <User className="h-4 w-4 text-[#B02128]"/> Operador
+              </h3>
+              <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
+                <p className="font-bold text-gray-800">{chofer}</p>
+                <div className="flex gap-4 text-xs text-gray-500">
+                  <span>RFC: {rfcChofer}</span>
+                  <span>Licencia: {licencia}</span>
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+                <ShieldCheck className="h-4 w-4 text-[#B02128]"/> Seguro
+              </h3>
+              <div className="text-xs text-gray-600 px-2 space-y-1">
+                <p><strong>Aseguradora:</strong> {aseguradora}</p>
+                <p><strong>Póliza:</strong> {poliza}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- SECCIÓN 4: FACTURAS RELACIONADAS --- */}
+        {carta.facturasVinculadas && carta.facturasVinculadas.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2 border-b pb-1">
+              <FileText className="h-4 w-4 text-[#B02128]"/> Documentos Relacionados
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {carta.facturasVinculadas.map((folio: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs border-blue-200 bg-blue-50 text-blue-700">
+                  Factura {folio}
+                </Badge>
               ))}
             </div>
-
-            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-xs text-blue-800">
-                <strong>Total de CFDIs Vinculados:</strong>
-                {" "}
-                {carta.facturasVinculadas.length} factura(s) timbrada(s)
-              </p>
-            </div>
           </div>
-        </div>
-
-        {/* ===========================
-            FOOTER
-        ============================ */}
-        <div className="text-center text-[10px] text-[#64748B] pt-4 border-t border-gray-300 space-y-1">
-          <p className="text-[#1E293B]">
-            Este documento es una representación impresa del Complemento Carta Porte 2.0
-          </p>
-          <p>
-            Generado conforme a las especificaciones del SAT para el transporte de mercancías
-          </p>
-          <p className="mt-2">
-            Fecha de Generación: {carta.fecha} 12:00:00
-          </p>
-        </div>
+        )}
 
       </div>
     </div>

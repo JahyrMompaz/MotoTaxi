@@ -82,6 +82,7 @@ export interface FacturaView {
   folio: string;
 
   cliente: string;
+  cliente_id: number;
   rfc: string;
 
   tipo: string;

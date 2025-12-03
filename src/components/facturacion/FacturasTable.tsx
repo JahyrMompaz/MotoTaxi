@@ -120,7 +120,7 @@ export default function FacturasTable({
         <div className="flex flex-col gap-1">
           {/* Ver */}
           <Button variant="ghost" size="icon" onClick={() => onView(factura)}>
-            <Eye className="h-4 w-4" />
+            <Eye className="h-4 w-4 text-green-600" />
           </Button>
 
           {/* Timbrar si pendiente */}
@@ -139,24 +139,24 @@ export default function FacturasTable({
           {factura.estatus === 'Timbrada' && (
             <>
               <Button variant="ghost" size="icon" onClick={() => onDownload(factura)}>
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4 " />
               </Button>
 
               {hasCreate && !factura.tipo.includes('Nota') && (
                 <>
                   <Button variant="ghost" size="icon" className="text-orange-600" onClick={() => onNotaCredito(factura)}>
-                    <MinusCircle className="h-4 w-4" />
+                    <MinusCircle className="h-4 w-4 text-orange-600" />
                   </Button>
 
                   <Button variant="ghost" size="icon" className="text-blue-600" onClick={() => onNotaCargo(factura)}>
-                    <PlusCircle className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4 text-blue-600" />
                   </Button>
                 </>
               )}
 
               {canCancel && (
                 <Button variant="ghost" size="icon" className="text-red-600" onClick={() => onCancelar(factura)}>
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-4 w-4 text-red-600" />
                 </Button>
               )}
             </>
@@ -217,7 +217,7 @@ export default function FacturasTable({
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {/* Ver */}
-                        <Button variant="ghost" size="icon" onClick={() => onView(f)}>
+                        <Button variant="ghost" title="Ver Factura" size="icon" onClick={() => onView(f)}>
                           <Eye className="h-4 w-4" />
                         </Button>
 
@@ -236,7 +236,7 @@ export default function FacturasTable({
                         {/* Timbrada -> acciones */}
                         {f.estatus === 'Timbrada' && (
                           <>
-                            <Button variant="ghost" size="icon" onClick={() => onDownload(f)}>
+                            <Button variant="ghost" size="icon" title="Descargar Factura" onClick={() => onDownload(f)}>
                               <Download className="h-4 w-4" />
                             </Button>
 
@@ -245,19 +245,20 @@ export default function FacturasTable({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-orange-600"
+                                  title="Nota de Crédito"
                                   onClick={() => onNotaCredito(f)}
                                 >
-                                  <MinusCircle className="h-4 w-4" />
+                                  <MinusCircle className="h-4 w-4 text-orange-600" />
                                 </Button>
 
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-blue-600"
+                                  title="Nota de Cargo"
+                                  className=""
                                   onClick={() => onNotaCargo(f)}
                                 >
-                                  <PlusCircle className="h-4 w-4" />
+                                  <PlusCircle className="h-4 w-4 text-blue-600" />
                                 </Button>
                               </>
                             )}
@@ -266,6 +267,7 @@ export default function FacturasTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                title="Cancelar Factura"
                                 className="text-red-600"
                                 onClick={() => onCancelar(f)}
                               >
