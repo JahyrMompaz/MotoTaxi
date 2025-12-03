@@ -3,21 +3,21 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import { Layout } from './components/Layout';
 import { ClientesPage } from './components/clientes/ClientesPage';
-import { Clientes } from './components/Clientes';
-import { Refacciones } from './components/Refacciones';
+
 import { RefaccionesPage } from './components/refacciones/RefaccionesPage';
-import { Mototaxis } from './components/Mototaxis';
+
 import { MototaxiPage } from './components/mototaxis/MototaxiPage';
-import { Servicios } from './components/Servicios';
+
 import { ServicioPage } from './components/servicios/ServicioPage';
-import { Facturacion } from './components/Facturacion';
+
 import FacturasPage from './components/facturacion/FacturasPage';
-import { Reportes } from './components/Reportes';
+
 import { ReportesPage } from './components/reportes/ReportesPage';
+import { PuntoDeVenta } from './components/pos/PuntoDeVenta';
 import { Configuracion } from './components/Configuracion';
 import { Toaster } from './components/ui/sonner';
-import { CartaPorte } from './components/CartaPorte';
-import { CartaPortePage } from './components/cartaporte/CartaPortePage';
+
+import CartaPortePage from './components/cartaporte/CartaPortePage';
 
 function AppContent() {
   const { user, hasPermission } = useAuth();
@@ -35,6 +35,7 @@ function AppContent() {
         cartaPorte: 'cartaPorte.view',
         reportes: 'reportes.view',
         configuracion: 'configuracion.view',
+        puntoDeVenta: 'puntoDeVenta.view',
       };
 
       const currentPermission = pagePermissionMap[currentPage];
@@ -64,6 +65,8 @@ function AppContent() {
         return <MototaxiPage />;
       case 'servicios':
         return <ServicioPage />;
+      case 'puntoDeVenta':
+        return <PuntoDeVenta />;
       case 'facturacion':
         return <FacturasPage />;
       case 'cartaPorte':

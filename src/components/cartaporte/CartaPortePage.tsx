@@ -1,583 +1,307 @@
-import { useState, useEffect } from "react";
-import { Plus, Eye, Download, Truck, MapPin, User, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Eye, Download, Truck, CheckCircle, XCircle, Clock } from "lucide-react";
 
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableHead, TableRow, TableCell, TableHeader } from "../ui/table";
 import { Badge } from "../ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "../ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "../ui/sheet";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Separator } from "../ui/separator";
-import { Checkbox } from "../ui/checkbox";
-import { Textarea } from "../ui/textarea";
+
+// Componentes propios
+import { CartaPorteForm } from "./CartaPorteForm";
 import { CartaPorteView } from "./CartaPorteView";
-import { downloadCartaPortePDF } from "./cartaPorteService";
+import { 
+  getCartasPorte, 
+  createCartaPorte, 
+  updateCartaPorte, 
+  downloadCartaPortePDF 
+} from "./cartaPorteService";
+import { FacturaService, getFacturasTimbradas } from "../facturacion/FacturaService"; // Importamos servicio de facturas
+import { toast } from "sonner";
 
 import { useAuth } from "../AuthContext";
 import { useIsMobile } from "../ui/use-mobile";
 
-import { getCartasPorte, createCartaPorte, updateCartaPorte } from "./cartaPorteService";
-import { getFacturasTimbradas } from "../facturacion/FacturaService";
-import { toast } from "sonner";
+// Tipos
+import { CartaPorte, CartaPorteFormData, CartaPortePayload, FacturaTimbrada, Cliente } from "./types";
 
-import { CartaPorte, CartaPorteFormData , CartaPortePayload, FacturaTimbrada } from "./types";
-
-// ------------------------------------------------------------
-// COMPONENTE PRINCIPAL
-// ------------------------------------------------------------
-export function CartaPortePage() {
+export default function CartaPortePage() {
   const { hasPermission } = useAuth();
   const isMobile = useIsMobile();
 
+  // --- ESTADOS DE DATOS ---
   const [cartasPorte, setCartasPorte] = useState<CartaPorte[]>([]);
-  const [facturasDisponibles, setFacturasDisponibles] = useState<any[]>([]);
+  
+  // Catálogos para el formulario
+  const [clientes, setClientes] = useState<Cliente[]>([]); 
+  const [allFacturas, setAllFacturas] = useState<FacturaTimbrada[]>([]); // Todas las facturas disponibles
 
+  // --- ESTADOS DE UI ---
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-
   const [selectedCarta, setSelectedCarta] = useState<CartaPorte | null>(null);
 
+  // --- FORMULARIO ---
   const [formData, setFormData] = useState<CartaPorteFormData>({
-    origen: "",
-    destino: "",
-    choferNombre: "",
-    choferRFC: "",
-    choferLicencia: "",
-    vehiculoPlacas: "",
-    vehiculoModelo: "",
-    vehiculoAnio: "",
-    vehiculoConfiguracion: "",
-    fechaSalida: "",
-    horaSalida: "",
-    distanciaKm: "",
-    facturasSeleccionadas: [],
-    observaciones: "",
+    cliente_id: "", // Se llena desde el Select
+    
+    // Direcciones
+    origen_nombre: "", origen_cp: "", origen_estado_clave: "", origen_municipio: "",
+    origen_calle: "", origen_numero_ext: "", origen_colonia: "", origen_localidad: "",
+    
+    destino_nombre: "", destino_cp: "", destino_estado_clave: "", destino_municipio: "",
+    destino_calle: "", destino_numero_ext: "", destino_colonia: "", destino_localidad: "",
+    
+    // Transporte
+    choferNombre: "", choferRFC: "", choferLicencia: "",
+    vehiculoPlacas: "", vehiculoModelo: "", vehiculoAnio: "", vehiculoConfiguracion: "",
+    permisoSCT: "TPAF01", numPermisoSCT: "", aseguraNombre: "", polizaNumero: "",
+    
+    // Viaje
+    fechaSalida: "", horaSalida: "00:00", fechaLlegada: "", distanciaKm: "", pesoTotal: "",
+    
+    // Relaciones
+    facturasSeleccionadas: [], mercancias: [], observaciones: "",
   });
 
-
-  
-  // ------------------------------------------------------------
-  // Cargar información real
-  // ------------------------------------------------------------
-  const loadCartas = async () => {
+  // 1. CARGA DE DATOS INICIALES
+  const loadData = async () => {
     try {
-      const data = await getCartasPorte();
-      setCartasPorte(data); // paginación Laravel
+      // A. Cartas Porte (Historial)
+      const dataCartas = await getCartasPorte();
+      setCartasPorte(dataCartas);
+
+      // B. Clientes (Para el Select)
+      const resClientes = await FacturaService.clientes();
+      setClientes((resClientes as any).data || []);
+
+      // C. Facturas Timbradas (Para vincular)
+      const resFacturas = await getFacturasTimbradas();
+      const rawFacturas = (resFacturas as any).data || [];
+      
+      // Mapeamos para asegurar que tenemos el cliente_id
+      const facturasMapeadas: FacturaTimbrada[] = rawFacturas.map((f: any) => ({
+        id: f.id,
+        folio: f.folio,
+        total: f.total,
+        cliente: typeof f.cliente === 'object' ? f.cliente?.nombre : f.cliente,
+        cliente_id: typeof f.cliente === 'object' ? f.cliente?.id : 0 // Guardamos ID para filtrar
+      }));
+      
+      setAllFacturas(facturasMapeadas);
+
     } catch (error) {
-      console.error("Error al cargar cartas porte:", error);
-      toast.error("Error al cargar las cartas porte");
+      console.error(error);
+      toast.error("Error al cargar datos iniciales");
     }
   };
 
-  const loadFacturas = async () => {
+  useEffect(() => { loadData(); }, []);
+
+  // 2. FILTRADO DINÁMICO DE FACTURAS
+  // Solo mostramos las facturas del cliente seleccionado en el formulario
+  const facturasFiltradas = useMemo(() => {
+    if (!formData.cliente_id) return [];
+    return allFacturas.filter(f => f.cliente_id === Number(formData.cliente_id));
+  }, [formData.cliente_id, allFacturas]);
+
+  // 3. CREAR CARTA PORTE
+  const handleCreate = async () => {
+    // Validaciones
+    if (!formData.cliente_id) return toast.error("Debes seleccionar un cliente");
+    if (!formData.origen_cp || !formData.destino_cp) return toast.error("Códigos Postales obligatorios");
+    if (formData.mercancias.length === 0) return toast.error("Agrega mercancías");
+    if (!formData.choferNombre) return toast.error("Chofer obligatorio");
+
+    // Construcción del Payload
+    const payload: CartaPortePayload = {
+      ...formData,
+      tipo_cfdi: 'T',
+      
+      // Usamos el cliente real seleccionado
+      cliente_id: Number(formData.cliente_id), 
+      
+      // Mapeos de nombres y tipos
+      distancia_total: Number(formData.distanciaKm) || 0,
+      peso_total: Number(formData.pesoTotal) || 0,
+      num_total_mercancias: formData.mercancias.length,
+      
+      factura_ids: formData.facturasSeleccionadas.map(id => Number(id)),
+      hora_salida: formData.horaSalida || undefined,
+      observaciones: formData.observaciones || "",
+      estatus: "Pendiente",
+
+      unidad_peso: 'KGM',
+
+      // Asegurar campos opcionales del transporte
+      anio_modelo_vm: Number(formData.vehiculoAnio) || 2024,
+      operador_rfc: formData.choferRFC,
+      operador_nombre: formData.choferNombre,
+      operador_licencia: formData.choferLicencia,
+      asegura_nombre: formData.aseguraNombre,
+      poliza_numero: formData.polizaNumero,
+      placa_vm: formData.vehiculoPlacas,
+      permiso_sct: formData.permisoSCT,
+      num_permiso_sct: formData.numPermisoSCT,
+      config_vehicular: formData.vehiculoConfiguracion
+    };
+
     try {
-      const data = await getFacturasTimbradas();
-      setFacturasDisponibles(data.data);
-    } catch (error) {
-      console.error("Error al cargar facturas:", error);
+      await createCartaPorte(payload);
+      toast.success("Carta Porte timbrada exitosamente");
+      await loadData();
+      setIsCreateOpen(false);
+      // resetForm(); // Opcional: limpiar form
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Error al crear");
     }
-  };
-
-  useEffect(() => {
-    loadCartas();
-    loadFacturas();
-  }, []);
-
-  // ------------------------------------------------------------
-  // Reset form
-  // ------------------------------------------------------------
-  const resetForm = () => {
-    setFormData({
-      origen: "",
-      destino: "",
-      choferNombre: "",
-      choferRFC: "",
-      choferLicencia: "",
-      vehiculoPlacas: "",
-      vehiculoModelo: "",
-      vehiculoAnio: "",
-      vehiculoConfiguracion: "",
-      fechaSalida: "",
-      horaSalida: "",
-      distanciaKm: "",
-      facturasSeleccionadas: [],
-      observaciones: "",
-    });
   };
 
   const handleCambiarEstatus = async (id: number, nuevoEstatus: string) => {
     if (!confirm(`¿Cambiar estatus a "${nuevoEstatus}"?`)) return;
-
     try {
       await updateCartaPorte(id, { estatus: nuevoEstatus });
-      toast.success(`Estatus actualizado a: ${nuevoEstatus}`);
-      await loadCartas();
-      
-      // Actualizar la carta seleccionada también
+      toast.success(`Estatus actualizado`);
+      await loadData();
       if (selectedCarta && selectedCarta.id === id) {
         setSelectedCarta({ ...selectedCarta, estatus: nuevoEstatus as any });
       }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Error al cambiar estatus");
-    }
+    } catch { toast.error("Error al actualizar estatus"); }
   };
 
-  // ------------------------------------------------------------
-  // Crear Carta Porte real
-  // ------------------------------------------------------------
-  const handleCreate = async () => {
-  // Validación básica
-  if (!formData.origen || !formData.destino || !formData.choferNombre) {
-    toast.error("Por favor completa todos los campos obligatorios");
-    return;
-  }
-
-  if (formData.facturasSeleccionadas.length === 0) {
-    toast.error("Debes seleccionar al menos una factura");
-    return;
-  }
-
-  const payload: CartaPortePayload = {
-    origen: formData.origen,
-    destino: formData.destino,
-    chofer_nombre: formData.choferNombre,
-    chofer_rfc: formData.choferRFC || null,
-    chofer_licencia: formData.choferLicencia,
-    vehiculo_placas: formData.vehiculoPlacas,
-    vehiculo_modelo: formData.vehiculoModelo,
-    vehiculo_anio: formData.vehiculoAnio || null,
-    vehiculo_configuracion: formData.vehiculoConfiguracion || null,
-    fecha_salida: formData.fechaSalida,
-    hora_salida: formData.horaSalida || null,
-    distancia_km: Number(formData.distanciaKm) || 0,
-    observaciones: formData.observaciones || null,
-    estatus: "Pendiente",
-    factura_ids: formData.facturasSeleccionadas.map((id) => Number(id)),
-  };
-
-  try {
-    await createCartaPorte(payload);
-    toast.success("Carta Porte creada exitosamente");
-    await loadCartas();
-    setIsCreateOpen(false);
-    resetForm();
-  } catch (error: any) {
-    console.error(error);
-    toast.error(error.message || "Error al crear Carta Porte");
-  }
-};
-
-  // ------------------------------------------------------------
-  // Utilidades UI
-  // ------------------------------------------------------------
+  // Helpers de UI
   const getStatusColor = (estatus: string) => {
     switch (estatus) {
-      case "Pendiente":
-        return "bg-yellow-200 text-yellow-800";
-      case "En Transito":
-        return "bg-blue-200 text-blue-800";
-      case "Entregada":
-        return "bg-green-200 text-green-800";
-      case "Cancelada":
-        return "bg-red-200 text-red-800";
+      case "Pendiente": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "En Transito": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Entregada": return "bg-green-100 text-green-800 border-green-200";
+      case "Cancelada": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
-    return "bg-gray-200 text-gray-800";
   };
 
   const getStatusIcon = (estatus: string) => {
     switch (estatus) {
-      case "Pendiente":
-        return <Clock className="h-3 w-3" />;
-      case "En Transito":
-        return <Truck className="h-3 w-3" />;
-      case "Entregada":
-        return <CheckCircle className="h-3 w-3" />;
-      case "Cancelada":
-        return <XCircle className="h-3 w-3" />;
+      case "Pendiente": return <Clock className="h-3 w-3" />;
+      case "En Transito": return <Truck className="h-3 w-3" />;
+      case "Entregada": return <CheckCircle className="h-3 w-3" />;
+      case "Cancelada": return <XCircle className="h-3 w-3" />;
+      default: return null;
     }
-    return null;
   };
 
-  // ------------------------------------------------------------
-  // Render principal
-  // ------------------------------------------------------------
   return (
-    <div className="space-y-4">
-
-      {/* Header */}
+    <div className={`space-y-4 ${isMobile ? 'pb-24' : ''}`}>
+      
+      {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl text-[#1E293B]">Carta Porte</h1>
-          <p className="text-[#64748B] text-sm">Gestión real de complementos Carta Porte CFDI 4.0</p>
+          <h1 className="text-xl font-bold text-[#1E293B]">Carta Porte</h1>
+          <p className="text-[#64748B] text-sm">Gestión de traslados CFDI 4.0</p>
         </div>
-
         {hasPermission("facturacion.create") && (
           <Button className="bg-[#B02128] text-white" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Carta Porte
+            <Plus className="h-4 w-4 mr-2" /> Nueva Carta Porte
           </Button>
         )}
       </div>
 
-      {/* Tabla principal */}
-      <Card className="bg-white border-gray-200">
+      {/* TABLA HISTORIAL */}
+      <Card className="bg-white border-gray-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Cartas Porte Registradas</CardTitle>
+          <CardTitle>Historial de Traslados</CardTitle>
         </CardHeader>
-
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Folio</TableHead>
-                <TableHead>Origen</TableHead>
-                <TableHead>Destino</TableHead>
-                <TableHead>Chofer</TableHead>
-                <TableHead>Vehículo</TableHead>
+                <TableHead>Ruta</TableHead>
+                <TableHead className="hidden md:table-cell">Chofer</TableHead>
+                <TableHead className="hidden md:table-cell">Vehículo</TableHead>
                 <TableHead>Estatus</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody>
               {cartasPorte.map((carta) => (
                 <TableRow key={carta.id}>
-                  <TableCell>{carta.folio}</TableCell>
-                  <TableCell>{carta.origen}</TableCell>
-                  <TableCell>{carta.destino}</TableCell>
-                  <TableCell>{carta.choferNombre}</TableCell>
-                  <TableCell>{carta.vehiculoPlacas}</TableCell>
+                  <TableCell className="font-medium text-[#1E293B]">{carta.folio}</TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusColor(carta.estatus)} flex items-center gap-1`}>
-                      {getStatusIcon(carta.estatus)}
-                      {carta.estatus}
+                    <div className="flex flex-col text-sm">
+                      <span className="font-semibold">{carta.origen}</span>
+                      <span className="text-xs text-gray-500">➜ {carta.destino}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-gray-600">{carta.choferNombre}</TableCell>
+                  <TableCell className="hidden md:table-cell text-gray-600">{carta.vehiculoPlacas}</TableCell>
+                  <TableCell>
+                    <Badge className={`${getStatusColor(carta.estatus)} flex items-center gap-1 w-fit`}>
+                      {getStatusIcon(carta.estatus)} {carta.estatus}
                     </Badge>
                   </TableCell>
-
                   <TableCell className="text-right">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setSelectedCarta(carta);
-                        setIsViewOpen(true);
-                      }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => downloadCartaPortePDF(carta.id)}>
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => { setSelectedCarta(carta); setIsViewOpen(true); }}>
+                        <Eye className="h-4 w-4 text-gray-600" />
+                      </Button>
+                      {carta.estatus !== 'Cancelada' && (
+                        <Button variant="ghost" size="icon" onClick={() => downloadCartaPortePDF(carta.id)}>
+                          <Download className="h-4 w-4 text-[#B02128]" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {cartasPorte.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">No hay registros</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* ------------------------------------------------------------------
-          FORMULARIO (DIALOG DESKTOP / SHEET MOBILE)
-      ------------------------------------------------------------------ */}
+      {/* MODAL CREACIÓN */}
       {isMobile ? (
         <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <SheetContent side="bottom" className="bg-white h-[90vh] overflow-y-auto p-4">
+          <SheetContent side="bottom" className="h-[95vh] overflow-y-auto bg-white">
             <SheetHeader>
               <SheetTitle>Nueva Carta Porte</SheetTitle>
-              <SheetDescription>Captura los datos reales</SheetDescription>
+              <SheetDescription>Completa el formulario para timbrar</SheetDescription>
             </SheetHeader>
-
-            {/* FORM */}
-            <FormContent
-              formData={formData}
-              setFormData={setFormData}
-              facturasDisponibles={facturasDisponibles}
+            <CartaPorteForm 
+              formData={formData} setFormData={setFormData} isOpen={isCreateOpen} setIsOpen={setIsCreateOpen} onSubmit={handleCreate} 
+              facturasDisponibles={facturasFiltradas} // <--- Pasamos las filtradas
+              clientes={clientes} // <--- Pasamos el catálogo
+              isMobile={true} 
             />
-
-            <SheetFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-              <Button className="bg-[#B02128] text-white" onClick={handleCreate}>
-                Crear
-              </Button>
-            </SheetFooter>
           </SheetContent>
         </Sheet>
       ) : (
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent className="max-w-[700px] bg-white max-h-[90vh] overflow-y-auto">
-
-            <DialogHeader>
-              <DialogTitle>Nueva Carta Porte</DialogTitle>
-            </DialogHeader>
-
-            <FormContent
-              formData={formData}
-              setFormData={setFormData}
-              facturasDisponibles={facturasDisponibles}
-            />
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-              <Button className="bg-[#B02128] text-white" onClick={handleCreate}>
-                Crear
-              </Button>
-            </DialogFooter>
-
-          </DialogContent>
-        </Dialog>
+        // En desktop el componente ya trae el Dialog wrapper
+        <CartaPorteForm 
+          formData={formData} setFormData={setFormData} isOpen={isCreateOpen} setIsOpen={setIsCreateOpen} onSubmit={handleCreate} 
+          facturasDisponibles={facturasFiltradas} // <--- Pasamos las filtradas
+          clientes={clientes} // <--- Pasamos el catálogo
+          isMobile={false} 
+        />
       )}
 
-      {/* ------------------------------------------------------------------
-    DIALOG DE VISTA DETALLADA (PDF STYLE)
------------------------------------------------------------------- */}
-<Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-  <DialogContent className="max-w-[900px] bg-white max-h-[90vh] overflow-y-auto">
-
-    {selectedCarta && (
-      <CartaPorteView
-        carta={selectedCarta}
-        getStatusColor={getStatusColor}
-        getStatusIcon={getStatusIcon}
-      />
-    )}
-
-    <DialogFooter>
-  {selectedCarta && selectedCarta.estatus === "Pendiente" && (
-    <Button 
-      className="bg-blue-600 hover:bg-blue-700 text-white"
-      onClick={() => handleCambiarEstatus(selectedCarta.id, "En Transito")}
-    >
-      <Truck className="h-4 w-4 mr-2" />
-      Marcar En Tránsito
-    </Button>
-  )}
-  
-  {selectedCarta && selectedCarta.estatus === "En Transito" && (
-    <Button 
-      className="bg-green-600 hover:bg-green-700 text-white"
-      onClick={() => handleCambiarEstatus(selectedCarta.id, "Entregada")}
-    >
-      <CheckCircle className="h-4 w-4 mr-2" />
-      Marcar Entregada
-    </Button>
-  )}
-
-  {selectedCarta && selectedCarta.estatus !== "Cancelada" && (
-    <Button
-      variant="outline"
-      className="text-red-600 hover:bg-red-50"
-      onClick={() => handleCambiarEstatus(selectedCarta.id, "Cancelada")}
-    >
-      <XCircle className="h-4 w-4 mr-2" />
-      Cancelar
-    </Button>
-  )}
-  
-  <Button variant="outline" onClick={() => setIsViewOpen(false)}>
-    Cerrar
-  </Button>
-</DialogFooter>
-
-  </DialogContent>
-</Dialog>
-    </div>
-  );
-}
-
-interface FormContentProps {
-  formData: CartaPorteFormData;
-  setFormData: React.Dispatch<React.SetStateAction<CartaPorteFormData>>;
-  facturasDisponibles: FacturaTimbrada[];
-}
-
-// =====================================================================
-// FORM CONTENT — componente separado para no duplicar código
-// =====================================================================
-function FormContent({ formData, setFormData, facturasDisponibles }: FormContentProps) {
-  return (
-    <div className="space-y-4">
-
-      {/* ORIGEN / DESTINO */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#1E293B]">Ruta</h3>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div>
-            <Label>Origen *</Label>
-            <Input
-              value={formData.origen}
-              onChange={(e) => setFormData({ ...formData, origen: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <Label>Destino *</Label>
-            <Input
-              value={formData.destino}
-              onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* CHOFER */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#1E293B]">Chofer</h3>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div>
-            <Label>Nombre *</Label>
-            <Input
-              value={formData.choferNombre}
-              onChange={(e) => setFormData({ ...formData, choferNombre: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <Label>RFC</Label>
-            <Input
-              value={formData.choferRFC}
-              onChange={(e) => setFormData({ ...formData, choferRFC: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <Label>Licencia *</Label>
-          <Input
-            value={formData.choferLicencia}
-            onChange={(e) => setFormData({ ...formData, choferLicencia: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* VEHICULO */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#1E293B]">Vehículo</h3>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div>
-            <Label>Placas *</Label>
-            <Input
-              value={formData.vehiculoPlacas}
-              onChange={(e) => setFormData({ ...formData, vehiculoPlacas: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <Label>Modelo *</Label>
-            <Input
-              value={formData.vehiculoModelo}
-              onChange={(e) => setFormData({ ...formData, vehiculoModelo: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div>
-            <Label>Año</Label>
-            <Input
-              value={formData.vehiculoAnio}
-              onChange={(e) => setFormData({ ...formData, vehiculoAnio: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Configuración</Label>
-            <Input
-              value={formData.vehiculoConfiguracion}
-              onChange={(e) => setFormData({ ...formData, vehiculoConfiguracion: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* FECHA / HORA */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#1E293B]">Fecha y Hora</h3>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div>
-            <Label>Fecha *</Label>
-            <Input
-              type="date"
-              value={formData.fechaSalida}
-              onChange={(e) => setFormData({ ...formData, fechaSalida: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <Label>Hora</Label>
-            <Input
-              type="time"
-              value={formData.horaSalida}
-              onChange={(e) => setFormData({ ...formData, horaSalida: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* DISTANCIA */}
-      <div>
-        <Label>Distancia (km) *</Label>
-        <Input
-          type="number"
-          value={formData.distanciaKm}
-          onChange={(e) => setFormData({ ...formData, distanciaKm: e.target.value })}
-        />
-      </div>
-
-      <Separator />
-
-      {/* FACTURAS */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#1E293B]">Facturas Timbradas *</h3>
-        <div className="border rounded p-3 max-h-56 overflow-y-auto">
-
-          {facturasDisponibles.map((factura: any) => (
-            <div key={factura.id} className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={formData.facturasSeleccionadas.includes(factura.id)}
-                  onCheckedChange={() => {
-                    setFormData({
-                      ...formData,
-                      facturasSeleccionadas: formData.facturasSeleccionadas.includes(factura.id)
-                        ? formData.facturasSeleccionadas.filter((x: any) => x !== factura.id)
-                        : [...formData.facturasSeleccionadas, factura.id],
-                    });
-                  }}
-                />
-                <Label className="cursor-pointer">
-                  {factura.folio} — {factura.cliente}
-                </Label>
-              </div>
-
-              <span className="text-sm text-[#1E293B]">
-                ${factura.total.toLocaleString()}
-              </span>
-            </div>
-          ))}
-
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* OBSERVACIONES */}
-      <div>
-        <Label>Observaciones</Label>
-        <Textarea
-          rows={3}
-          value={formData.observaciones}
-          onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-        />
-      </div>
+      {/* MODAL DETALLE */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-[900px] bg-white max-h-[90vh] overflow-y-auto">
+          {selectedCarta && <CartaPorteView carta={selectedCarta} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} />}
+          <DialogFooter className="gap-2">
+             {selectedCarta?.estatus === 'Pendiente' && <Button className="bg-blue-600 text-white" onClick={() => handleCambiarEstatus(selectedCarta!.id, 'En Transito')}><Truck className="h-4 w-4 mr-2"/> En Tránsito</Button>}
+             {selectedCarta?.estatus === 'En Transito' && <Button className="bg-green-600 text-white" onClick={() => handleCambiarEstatus(selectedCarta!.id, 'Entregada')}><CheckCircle className="h-4 w-4 mr-2"/> Entregar</Button>}
+             {selectedCarta?.estatus !== 'Cancelada' && <Button variant="destructive" onClick={() => handleCambiarEstatus(selectedCarta!.id, 'Cancelada')}><XCircle className="h-4 w-4 mr-2"/> Cancelar</Button>}
+             <Button variant="outline" onClick={() => setIsViewOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

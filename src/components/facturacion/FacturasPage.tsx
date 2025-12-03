@@ -27,7 +27,7 @@ import { FileText } from 'lucide-react';
 import FacturasFormDialog from './FacturaFormDialog';
 import FacturasTable from './FacturasTable';
 import { FacturaService } from './FacturaService';
-import type { FacturaApi, FacturaView, Paginator } from './types';
+import type { CrearFacturaPayload, FacturaApi, FacturaView, Paginator } from './types';
 import { api } from '../../lib/api'; // Función para obtener la URL completa del API
 
 // --- Mapeo de API a Vista ---
@@ -44,6 +44,7 @@ function mapApiToView(f: FacturaApi): FacturaView {
     id: f.id,
     folio: f.folio,
     cliente: f.cliente?.nombre ?? 'Cliente Desconocido',
+    cliente_id: f.cliente?.id ?? 0,
     rfc: f.cliente?.rfc ?? 'XAXX010101000',
     tipo: f.tipo ?? 'Ingreso',
     tipo_venta: f.tipo_venta ?? undefined,
@@ -199,16 +200,34 @@ export default function FacturasPage() {
   const handleNotaCredito = async () => {
     if (!selected) return;
     try {
-      await FacturaService.notaCredito(selected.id, {
-        motivo: notaData.motivo,
-        monto: Number(notaData.monto),
-        descripcion: notaData.descripcion,
-        uuid_relacionado: selected.uuid
-      });
+      const payloadCompleto: CrearFacturaPayload = {
+        // Asegúrate de tener cliente_id en tu objeto selected o búscalo
+        cliente_id: selected.cliente_id, 
+        
+        tipo: 'Egreso', // <--- IMPORTANTE: Egreso para Nota de Crédito
+        tipo_venta: selected.tipo_venta || 'Servicio',
+        metodo_pago: selected.metodoPago || 'PUE', 
+        forma_pago: selected.formaPago || '03', 
+        uso_cfdi: 'G02', // <--- IMPORTANTE: G02 = Devoluciones, descuentos o bonificaciones
+        
+        // Relación Fiscal (Obligatoria para Nota de Crédito)
+        uuid_relacionado: selected.uuid || undefined, 
+
+        items: [
+          {
+            descripcion: notaData.descripcion || 'Bonificación / Devolución',
+            cantidad: 1,
+            precio_unitario: Number(notaData.monto)
+          }
+        ]
+      };
+
+      await FacturaService.notaCredito(payloadCompleto);
       toast.success('Nota de crédito creada');
       setIsNotaCreditoOpen(false);
       load(page);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Error al crear nota de crédito');
     }
   };
@@ -216,16 +235,30 @@ export default function FacturasPage() {
   const handleNotaCargo = async () => {
     if (!selected) return;
     try {
-      await FacturaService.notaCargo(selected.id, {
-        motivo: notaData.motivo,
-        monto: Number(notaData.monto),
-        descripcion: notaData.descripcion,
-        uuid_relacionado: selected.uuid
-      });
+      const payloadCompleto = {
+        cliente_id: selected.cliente_id,
+        tipo: 'Ingreso', // Laravel lo espera
+        tipo_venta: selected.tipo_venta || 'Servicio',
+        metodo_pago: selected.metodoPago || 'PUE', 
+        forma_pago: selected.formaPago || '03', 
+        uso_cfdi: selected.usoCFDI || 'G03', 
+        
+        // Items: Creamos un item nuevo con el cargo extra
+        items: [
+          {
+            descripcion: notaData.descripcion || 'Cargo Extra',
+            cantidad: 1,
+            precio_unitario: Number(notaData.monto)
+          }
+        ]
+      };
+
+      await FacturaService.notaCargo(payloadCompleto);
       toast.success('Nota de cargo creada');
       setIsNotaCargoOpen(false);
       load(page);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Error al crear nota de cargo');
     }
   };
@@ -252,12 +285,12 @@ export default function FacturasPage() {
         
         {/* Botón Crear (Desktop/Mobile Logic handled by Dialog) */}
         {hasPermission('facturacion.create') && (
-           <Button 
-             className="bg-[#B02128] hover:bg-[#8B1A20] text-white w-full sm:w-auto shadow-sm"
-             onClick={() => setIsAddDialogOpen(true)}
-           >
-             <Plus className="h-4 w-4 mr-2" /> Nueva Factura
-           </Button>
+            <Button 
+              className="bg-[#B02128] hover:bg-[#8B1A20] text-white w-full sm:w-auto shadow-sm"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Nueva Factura
+            </Button>
         )}
       </div>
 
@@ -486,55 +519,74 @@ export default function FacturasPage() {
 
       {/* 4. NOTA DE CRÉDITO */}
       <Dialog open={isNotaCreditoOpen} onOpenChange={setIsNotaCreditoOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Crear Nota de Crédito</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-             <div className="grid gap-2">
-               <Label>Motivo</Label>
-               <Select onValueChange={(v: any) => setNotaData({...notaData, motivo: v})} defaultValue="01">
-                 <SelectTrigger><SelectValue placeholder="Seleccione..."/></SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="01">Devolución</SelectItem>
-                   <SelectItem value="02">Descuento</SelectItem>
-                   <SelectItem value="03">Bonificación</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
-             <div className="grid gap-2">
-               <Label>Monto</Label>
-               <Input type="number" onChange={(e) => setNotaData({...notaData, monto: Number(e.target.value)})} />
-             </div>
-             <div className="grid gap-2">
-               <Label>Descripción</Label>
-               <Textarea onChange={(e) => setNotaData({...notaData, descripcion: e.target.value})} />
-             </div>
-          </div>
-          <DialogFooter>
-             <Button onClick={handleNotaCredito} className="bg-orange-600 text-white">Generar Nota</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Crear Nota de Crédito</DialogTitle>
+      <DialogDescription>Generar egreso relacionado a la factura {selected?.folio}</DialogDescription>
+    </DialogHeader>
+    <div className="space-y-3 py-2">
+      <div className="grid gap-2">
+        <Label>Motivo</Label>
+        <Select onValueChange={(v: any) => setNotaData({...notaData, motivo: v})} defaultValue="02">
+          <SelectTrigger><SelectValue placeholder="Seleccione..."/></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="01">Devolución</SelectItem>
+            <SelectItem value="02">Descuento</SelectItem>
+            <SelectItem value="03">Bonificación</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Monto</Label>
+        <Input 
+          type="number" 
+          placeholder="0.00"
+          onChange={(e) => setNotaData({...notaData, monto: Number(e.target.value)})} 
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label>Descripción</Label>
+        <Textarea 
+          placeholder="Razón del descuento o devolución"
+          onChange={(e) => setNotaData({...notaData, descripcion: e.target.value})} 
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsNotaCreditoOpen(false)}>
+        Cancelar
+      </Button>
+      <Button onClick={handleNotaCredito} className="bg-orange-600 text-white">
+        Generar Nota
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       
       {/* 5. NOTA DE CARGO */}
-       <Dialog open={isNotaCargoOpen} onOpenChange={setIsNotaCargoOpen}>
+      <Dialog open={isNotaCargoOpen} onOpenChange={setIsNotaCargoOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Crear Nota de Cargo</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Crear Nota de Cargo</DialogTitle>
+            <DialogDescription>Generar ingreso adicional relacionado a la factura {selected?.folio}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3 py-2">
-             <div className="grid gap-2">
-               <Label>Motivo</Label>
-               <Input value="Ajuste de precio" disabled /> 
-             </div>
-             <div className="grid gap-2">
-               <Label>Monto</Label>
-               <Input type="number" onChange={(e) => setNotaData({...notaData, monto: Number(e.target.value)})} />
-             </div>
-             <div className="grid gap-2">
-               <Label>Descripción</Label>
-               <Textarea onChange={(e) => setNotaData({...notaData, descripcion: e.target.value})} />
-             </div>
+              <div className="grid gap-2">
+                <Label>Motivo</Label>
+                <Input value="Ajuste de precio" disabled /> 
+              </div>
+              <div className="grid gap-2">
+                <Label>Monto</Label>
+                <Input type="number" onChange={(e) => setNotaData({...notaData, monto: Number(e.target.value)})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Descripción</Label>
+                <Textarea onChange={(e) => setNotaData({...notaData, descripcion: e.target.value})} />
+              </div>
           </div>
           <DialogFooter>
-             <Button onClick={handleNotaCargo} className="bg-blue-600 text-white">Generar Cargo</Button>
+            <Button variant="outline" onClick={() => setIsNotaCargoOpen(false)}>Cancelar</Button>
+              <Button onClick={handleNotaCargo} className="bg-blue-600 text-white">Generar Cargo</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

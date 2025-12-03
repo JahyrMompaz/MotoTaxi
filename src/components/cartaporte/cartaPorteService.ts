@@ -115,35 +115,98 @@ export async function deleteCartaPorte(id: number) {
 
 // Descargar PDF
 export async function downloadCartaPortePDF(id: number) {
+  console.log("Intentando descargar PDF para ID:", id); // Debug
+
   try {
-    const res = await fetch(api(`/cartas-porte/${id}/pdf`), {
+    // IMPORTANTE: Verifica si en routes/api.php pusiste 'carta-porte' o 'cartas-porte'
+    // Aquí asumo SINGULAR 'carta-porte' como definimos en el Paso 1
+    const url = api(`/carta-porte/${id}/pdf`); 
+    
+    console.log("URL de descarga:", url); // Debug
+
+    const res = await fetch(url, {
       method: "GET",
       credentials: "include",
+      headers: {
+        "Accept": "application/pdf",
+        "Content-Type": "application/json",
+      },
     });
 
     if (!res.ok) {
-      throw new Error("Error al descargar PDF");
+      // Si falla, intentamos leer el mensaje de error del backend
+      const errorText = await res.text();
+      console.error("Error Backend:", errorText);
+      throw new Error("No se pudo generar el PDF. Verifica que la carta esté timbrada.");
     }
 
+    // Proceso de descarga Blob
     const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    // Crear link temporal
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `Carta-Porte-${id}.pdf`;
+    a.href = blobUrl;
+    a.download = `CartaPorte-${id}.pdf`;
     document.body.appendChild(a);
     a.click();
+    
+    // Limpieza
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(blobUrl);
+    
+    console.log("Descarga iniciada correctamente");
+
   } catch (error) {
-    console.error("Error descargando PDF:", error);
-    throw error;
+    console.error("Error en downloadCartaPortePDF:", error);
+    throw error; // Relanzar para que el componente muestre el Toast
   }
+
+  // En cartaPorteService.ts
+
+function transformCartaPorte(carta: any): CartaPorte {
+  // Debug: Ver qué llega crudo del backend
+  // console.log("Transformando carta:", carta); 
+
+  return {
+    id: carta.id,
+    folio: carta.folio,
+    fecha: carta.fecha_salida || carta.created_at, // Fallback a fecha creación
+    
+    // Rutas
+    origen: carta.origen_nombre || carta.origen || 'N/A',
+    destino: carta.destino_nombre || carta.destino || 'N/A',
+    
+    // Chofer (Mapeo explícito de snake_case del backend)
+    choferNombre: carta.chofer_nombre || carta.operador_nombre || '',
+    choferRFC: carta.chofer_rfc || carta.operador_rfc || '',
+    choferLicencia: carta.chofer_licencia || carta.operador_licencia || '',
+    
+    // Vehículo
+    vehiculoPlacas: carta.vehiculo_placas || carta.placa_vm || '',
+    vehiculoModelo: carta.vehiculo_modelo || carta.anio_modelo_vm || '',
+    vehiculoAnio: carta.vehiculo_anio || '',
+    vehiculoConfiguracion: carta.vehiculo_configuracion || carta.config_vehicular || '',
+    
+    // Permisos y Seguros (Nuevos campos mapeados)
+    permisoSCT: carta.permiso_sct || '',
+    numPermisoSCT: carta.num_permiso_sct || '',
+    aseguraNombre: carta.asegura_nombre || carta.asegura_resp_civil || '',
+    polizaNumero: carta.poliza_numero || carta.poliza_resp_civil || '',
+    
+    // Viaje
+    horaSalida: carta.hora_salida || '',
+    distanciaKm: Number(carta.distancia_total || carta.total_dist_rec || 0),
+    observaciones: carta.observaciones || '',
+    estatus: carta.estatus,
+    
+    // Mercancías y Peso
+    mercancias: carta.mercancias, // Pasamos el raw (string o array)
+    pesoTotal: carta.peso_total || carta.peso_bruto_total || 0,
+    
+    // Relaciones
+    facturasVinculadas: carta.facturas ? carta.facturas.map((f: any) => f.folio) : [],
+  };
+}
 }
 
-// Cambiar estatus específicamente
-export async function cambiarEstatusCartaPorte(
-  id: number, 
-  estatus: "Pendiente" | "En Transito" | "Entregada" | "Cancelada"
-) {
-  return updateCartaPorte(id, { estatus });
-}
