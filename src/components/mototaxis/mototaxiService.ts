@@ -1,4 +1,3 @@
-// src/components/Mototaxis/mototaxiService.ts
 import { api } from "../../lib/api";
 
 export interface Mototaxi {
@@ -13,6 +12,7 @@ export interface Mototaxi {
   imagenFile?: File | null;
   existencia?: number;
   codigo?: string;
+  activo?: boolean; // Agregado por si lo usas
 }
 
 export async function getMototaxis(): Promise<Mototaxi[]> {
@@ -28,44 +28,76 @@ export async function getMototaxis(): Promise<Mototaxi[]> {
 
 export async function createMototaxi(data: Partial<Mototaxi>): Promise<Mototaxi> {
   const formData = new FormData();
+  
   if (data.imagenFile) {
     formData.append("imagen", data.imagenFile);
   }
-  delete data.imagenFile;
+
+  // Claves que gestionamos manualmente o ignoramos
+  const ignoreKeys = ["imagen", "imagenFile"];
 
   Object.entries(data).forEach(([key, value]) => {
-    if( key == "imagen" ||key === "imagenFile") return;
-    if (value === undefined || value === null || value ==="") return; 
-      formData.append(key, value as any);
+    if (ignoreKeys.includes(key)) return;
+    if (value === undefined || value === null || value === "") return;
+    
+    // CORRECCIÓN 422: Convertir booleanos a "1" o "0"
+    if (typeof value === 'boolean') {
+        formData.append(key, value ? "1" : "0");
+    } else {
+        formData.append(key, String(value));
+    }
   });
 
   const res = await fetch((api("/mototaxis")), {
     method: "POST",
+    headers: { "Accept": "application/json" }, // Importante para evitar redirecciones
     credentials: "include",
     body: formData,
   });
+  
   if (!res.ok) throw new Error("Error al crear mototaxi");
   return res.json();
 }
 
 export async function updateMototaxi(id: number, data: Partial<Mototaxi>): Promise<Mototaxi> {
   const formData = new FormData();
+
+  // Truco para Laravel PUT con archivos
+  formData.append("_method", "PUT");
+
+  // Solo adjuntamos archivo si el usuario subió uno nuevo
   if (data.imagenFile) {
     formData.append("imagen", data.imagenFile);
   }
-  delete data.imagenFile;
+
+  const ignoreKeys = ["imagen", "imagenFile"];
+
   Object.entries(data).forEach(([key, value]) => {
-    if( key == "imagen" ||key === "imagenFile") return;
-    if (value === undefined || value === null || value === "")return; 
-      formData.append(key, value as any);
+    if (ignoreKeys.includes(key)) return;
+    if (value === undefined || value === null || value === "") return;
+
+    // CORRECCIÓN 422: Convertir booleanos a "1" o "0"
+    if (typeof value === 'boolean') {
+        formData.append(key, value ? "1" : "0");
+    } else {
+        formData.append(key, String(value));
+    }
   });
 
-  const res = await fetch((api(`/mototaxis/${id}`)), {
-    method: "POST",
+  const res = await fetch(api(`/mototaxis/${id}`), {
+    method: "POST", // Se envía como POST físico
+    headers: { 
+        "Accept": "application/json" // CORRECCIÓN CORS/REDIRECT
+    },
     credentials: "include",
     body: formData,
   });
-  if (!res.ok) throw new Error("Error al actualizar mototaxi");
+
+  if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "Error al actualizar mototaxi");
+  }
+  
   return res.json();
 }
 
