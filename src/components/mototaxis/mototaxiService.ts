@@ -2,17 +2,33 @@ import { api } from "../../lib/api";
 
 export interface Mototaxi {
   id: number;
-  modelo: string;
-  color: string;
+  // Identificación
   marca?: string;
+  modelo: string;
   anio: number;
+  color: string;
   numero_serie: string;
+  
+  // --- NUEVOS CAMPOS TÉCNICOS ---
+  motor?: string;
+  cilindraje?: string;
+  transmision?: string;
+  combustible?: string;
+
+  // --- NUEVOS CAMPOS IMPORTACIÓN ---
+  pedimento?: string;
+  aduana?: string;
+  fecha_pedimento?: string; 
+
+  // Inventario y Venta
   precio: number;
+  existencia?: number;
+  codigo?: string; 
+  activo?: boolean;
+  
+  // Imagen
   imagen?: string;
   imagenFile?: File | null;
-  existencia?: number;
-  codigo?: string;
-  activo?: boolean; // Agregado por si lo usas
 }
 
 export async function getMototaxis(): Promise<Mototaxi[]> {
@@ -33,14 +49,14 @@ export async function createMototaxi(data: Partial<Mototaxi>): Promise<Mototaxi>
     formData.append("imagen", data.imagenFile);
   }
 
-  // Claves que gestionamos manualmente o ignoramos
+
   const ignoreKeys = ["imagen", "imagenFile"];
 
   Object.entries(data).forEach(([key, value]) => {
     if (ignoreKeys.includes(key)) return;
     if (value === undefined || value === null || value === "") return;
     
-    // CORRECCIÓN 422: Convertir booleanos a "1" o "0"
+
     if (typeof value === 'boolean') {
         formData.append(key, value ? "1" : "0");
     } else {
@@ -50,22 +66,18 @@ export async function createMototaxi(data: Partial<Mototaxi>): Promise<Mototaxi>
 
   const res = await fetch((api("/mototaxis")), {
     method: "POST",
-    headers: { "Accept": "application/json" }, // Importante para evitar redirecciones
+    headers: { "Accept": "application/json" },
     credentials: "include",
     body: formData,
   });
-  
   if (!res.ok) throw new Error("Error al crear mototaxi");
   return res.json();
 }
 
 export async function updateMototaxi(id: number, data: Partial<Mototaxi>): Promise<Mototaxi> {
   const formData = new FormData();
-
-  // Truco para Laravel PUT con archivos
   formData.append("_method", "PUT");
 
-  // Solo adjuntamos archivo si el usuario subió uno nuevo
   if (data.imagenFile) {
     formData.append("imagen", data.imagenFile);
   }
@@ -76,7 +88,6 @@ export async function updateMototaxi(id: number, data: Partial<Mototaxi>): Promi
     if (ignoreKeys.includes(key)) return;
     if (value === undefined || value === null || value === "") return;
 
-    // CORRECCIÓN 422: Convertir booleanos a "1" o "0"
     if (typeof value === 'boolean') {
         formData.append(key, value ? "1" : "0");
     } else {
@@ -85,10 +96,8 @@ export async function updateMototaxi(id: number, data: Partial<Mototaxi>): Promi
   });
 
   const res = await fetch(api(`/mototaxis/${id}`), {
-    method: "POST", // Se envía como POST físico
-    headers: { 
-        "Accept": "application/json" // CORRECCIÓN CORS/REDIRECT
-    },
+    method: "POST", 
+    headers: { "Accept": "application/json" },
     credentials: "include",
     body: formData,
   });

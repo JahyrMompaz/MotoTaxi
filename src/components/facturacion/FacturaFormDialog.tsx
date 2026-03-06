@@ -29,7 +29,9 @@ interface LocalItem {
   precio_unitario: number;
   importe: number;
   id_origen?: number; 
-  tipo_origen?: string; 
+  clave_producto_servicio?: string;
+  clave_unidad?: string;
+  tipo_origen: 'Mototaxi' | 'Ticket';
 }
 
 interface TicketResult {
@@ -65,6 +67,8 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
   const [addMototaxiId, setAddMototaxiId] = useState<string>('');
   const [addCant, setAddCant] = useState<number>(1);
 
+  const [claveSat, setClaveSat] = useState<string>('25101503');
+  const [claveUnidad, setClaveUnidad] = useState<string>('H87');
   // --- Estado: ITEMS ---
   const [items, setItems] = useState<LocalItem[]>([]);
 
@@ -173,12 +177,14 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
       
       if (moto) {
           const newItem: LocalItem = {
-              descripcion: `${moto.modelo} ${moto.color} (Serie: ${moto.serie})`,
+              descripcion: `${moto.modelo} ${moto.color} (Serie: ${moto.numero_serie})`,
               cantidad: addCant,
               precio_unitario: moto.precio,
               importe: moto.precio * addCant,
               id_origen: moto.id,
-              tipo_origen: 'Mototaxi'
+              tipo_origen: 'Mototaxi',
+              clave_producto_servicio: claveSat,   
+              clave_unidad: claveUnidad
           };
           setItems([...items, newItem]);
           setAddMototaxiId('');
@@ -204,12 +210,22 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
 
     const esSoloMototaxi = items.every(i => i.tipo_origen === 'Mototaxi');
     const esSoloTicket = items.every(i => i.tipo_origen === 'Ticket');
-    
     let tipoVentaStr = 'Varios';
     if (esSoloMototaxi) tipoVentaStr = 'Mototaxi';
     if (esSoloTicket) tipoVentaStr = 'Refaccion'; 
 
-    const primerMototaxi = items.find(i => i.tipo_origen === 'Mototaxi');
+    const itemsPayload = items.map(i => ({
+        descripcion: i.descripcion,
+        cantidad: i.cantidad,
+        precio_unitario: i.precio_unitario,
+        
+        producto_id: i.id_origen, 
+        producto_type: i.tipo_origen === 'Mototaxi' 
+            ? 'App\\Models\\Mototaxi' 
+            : null,
+        clave_producto_servicio: i.clave_producto_servicio,
+        clave_unidad: i.clave_unidad
+    }));
 
     const payload: CrearFacturaPayload = {
       cliente_id: clienteId,
@@ -218,13 +234,10 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
       metodo_pago: metodoPago,
       forma_pago: formaPago,
       uso_cfdi: usoCFDI,
-      mototaxi_id: primerMototaxi?.id_origen || null,
+      mototaxi_id: null,
       uuid_relacionado: ticketSeleccionado || undefined,
-      items: items.map(i => ({
-        descripcion: i.descripcion,
-        cantidad: i.cantidad,
-        precio_unitario: i.precio_unitario
-      }))
+      
+      items: itemsPayload 
     };
 
     try {
@@ -338,26 +351,50 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
         </TabsContent>
 
         {/* --- MODO MOTOTAXI (Responsive) --- */}
-        <TabsContent value="mototaxi" className="space-y-3 mt-4">
-             <div className="flex flex-col md:flex-row gap-2 items-end">
-                <div className="flex-1 w-full">
-                    <Label>Seleccionar Mototaxi</Label>
-                    <Select value={addMototaxiId} onValueChange={setAddMototaxiId}>
-                        <SelectTrigger><SelectValue placeholder="Modelo / Serie..."/></SelectTrigger>
-                        <SelectContent>
-                            {mototaxis.map(m => (
-                                <SelectItem key={m.id} value={String(m.id)}>
-                                    {m.modelo} {m.color} - ${m.precio.toLocaleString()}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <Button onClick={handleAddMototaxi} className="bg-blue-600 text-white w-full md:w-auto mt-2 md:mt-0">
-                    <Plus className="h-4 w-4"/> Agregar
-                </Button>
-             </div>
-        </TabsContent>
+        <TabsContent value="mototaxi" className="space-y-4 mt-4">
+    
+    {/* 1. Selector de Moto */}
+    <div className="w-full">
+        <Label>Seleccionar Mototaxi</Label>
+        <Select value={addMototaxiId} onValueChange={setAddMototaxiId}>
+            <SelectTrigger><SelectValue placeholder="Modelo / Serie..."/></SelectTrigger>
+            <SelectContent>
+                {mototaxis.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                        {m.modelo} {m.color} - ${m.precio.toLocaleString()}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    </div>
+
+    {/* 2. Campos SAT y Botón Agregar (En una fila) */}
+    <div className="flex flex-col md:flex-row gap-3 items-end">
+        
+        <div className="w-full md:w-1/3">
+            <Label className="text-xs text-gray-500">Clave Prod/Serv (SAT)</Label>
+            <Input 
+                value={claveSat} 
+                onChange={(e) => setClaveSat(e.target.value)} 
+                placeholder="Ej. 25101503"
+            />
+        </div>
+
+        <div className="w-full md:w-1/3">
+            <Label className="text-xs text-gray-500">Clave Unidad</Label>
+            <Input 
+                value={claveUnidad} 
+                onChange={(e) => setClaveUnidad(e.target.value)} 
+                placeholder="Ej. H87" 
+            />
+        </div>
+
+        <Button onClick={handleAddMototaxi} className="bg-blue-600 text-white w-full md:w-1/3">
+            <Plus className="h-4 w-4 mr-2"/> Agregar
+        </Button>
+    </div>
+
+</TabsContent>
       </Tabs>
 
       {/* 3. TABLA DE CONCEPTOS (Scroll en móvil) */}

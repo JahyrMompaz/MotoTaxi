@@ -121,7 +121,7 @@ export interface Mototaxi {
   modelo: string;
   color: string;
   año?: number;
-  serie: string;
+  numero_serie: string;
   precio: number;
 }
 

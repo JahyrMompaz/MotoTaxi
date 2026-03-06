@@ -2,10 +2,21 @@ import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { Mototaxi, getMototaxis, createMototaxi, updateMototaxi, deleteMototaxi } from "./mototaxiService";
+import {
+  Mototaxi,
+  getMototaxis,
+  createMototaxi,
+  updateMototaxi,
+  deleteMototaxi,
+} from "./mototaxiService";
 import { MototaxiForm } from "./MototaxiForm";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
-import { AlertDialog, AlertDialogContent, AlertDialogAction, AlertDialogCancel } from "../ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "../ui/alert-dialog";
 import { MototaxiView } from "./MototaxiView";
 
 export function MototaxiPage() {
@@ -29,7 +40,7 @@ export function MototaxiPage() {
 
   const handleCreate = async (data: Partial<Mototaxi>) => {
     try {
-      if (!data.modelo || !data.codigo || !data.precio || !data.marca) {
+      if (!data.modelo || !data.precio || !data.marca) {
         toast.error("Por favor completa todos los campos");
         return;
       }
@@ -40,10 +51,10 @@ export function MototaxiPage() {
         setIsDialogOpen(false);
         loadMototaxis();
       } else {
-      await createMototaxi(data);
-      toast.success("Mototaxi registrada");
-      setIsDialogOpen(false);
-      loadMototaxis();
+        await createMototaxi(data);
+        toast.success("Mototaxi registrada");
+        setIsDialogOpen(false);
+        loadMototaxis();
       }
     } catch {
       toast.error("Error al crear mototaxi");
@@ -66,32 +77,78 @@ export function MototaxiPage() {
         <h1 className="text-[#1E293B]">Mototaxis</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#B02128] text-white" onClick={() => {
-    setSelectedMoto(null);
-    setIsDialogOpen(true);
-  }}>
+            <Button
+              className="bg-[#B02128] text-white"
+              onClick={() => {
+                setSelectedMoto(null);
+                setIsDialogOpen(true);
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" /> Nueva Unidad
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] bg-white">
-            <MototaxiForm moto={selectedMoto ?? undefined} onSubmit={handleCreate} />
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden bg-white">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-bold text-gray-900">
+                {selectedMoto ? "Editar Mototaxi" : "Nueva Unidad"}
+              </h2>
+            </div>
+            <div className="px-6 py-4">
+              <MototaxiForm
+                moto={selectedMoto ?? undefined}
+                onSubmit={handleCreate}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {mototaxis.map((moto) => (
-          <div key={moto.id} className="bg-white p-4 rounded-lg shadow border border-gray-100">
-            <img src={`https://sanjuan.desarrollos-404.com/storage/${moto.imagen}`} alt={moto.modelo} className="h-32 w-32 object-cover rounded" />
+          <div
+            key={moto.id}
+            className="bg-white p-4 rounded-lg shadow border border-gray-100"
+          >
+            <img
+              src={`https://sanjuan.desarrollos-404.com/storage/${moto.imagen}`}
+              alt={moto.modelo}
+              className="h-32 w-32 object-cover rounded"
+            />
             <h3 className="text-[#1E293B] mt-2">{moto.modelo}</h3>
             <p className="text-sm text-[#64748B]">Serie: {moto.numero_serie}</p>
-            <p className="text-[#B02128] text-lg">${moto.precio.toLocaleString()}</p>
+            <p className="text-[#B02128] text-lg">
+              ${moto.precio.toLocaleString()}
+            </p>
             <div className="flex gap-2 mt-3">
-              <Button variant="outline" size="icon" onClick={() => { setSelectedMoto(moto); setIsViewOpen(true); }}><Eye className="h-4 w-4" /></Button>
-              <Button variant="outline" size="icon" onClick={() => { setSelectedMoto(moto); setIsDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => {
-                      handleDelete(moto.id);
-                    }}><Trash2 className="h-4 w-4" /></Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSelectedMoto(moto);
+                  setIsViewOpen(true);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSelectedMoto(moto);
+                  setIsDialogOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  handleDelete(moto.id);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
               <AlertDialog>
                 <AlertDialogContent className="bg-white">
                   <p>¿Eliminar {moto.modelo}?</p>
@@ -112,10 +169,10 @@ export function MototaxiPage() {
       </div>
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-              <DialogContent className="sm:max-w-[500px] bg-white">
-                {selectedMoto && <MototaxiView Mototaxi={selectedMoto} />}
-              </DialogContent>
-            </Dialog>
+        <DialogContent className="sm:max-w-[500px] bg-white">
+          {selectedMoto && <MototaxiView Mototaxi={selectedMoto} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

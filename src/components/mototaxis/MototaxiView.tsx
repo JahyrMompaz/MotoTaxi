@@ -21,10 +21,6 @@ export function MototaxiView({ Mototaxi }: { Mototaxi: Mototaxi }) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Codigo</Label>
-          <p className="text-[#1E293B]">{Mototaxi.codigo}</p>
-        </div>
-        <div>
           <Label>Precio Unitario</Label>
           <p className="text-[#B02128] text-lg">${Mototaxi.precio.toLocaleString()}</p>
         </div>
