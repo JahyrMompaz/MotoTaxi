@@ -30,4 +30,4 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "./build/" # O build/* si cambiaste la config de Vite
-          server-dir: "./domains/desarrollos-404.com/public_html/sanjuan"
+          server-dir: "./domains/desarrollos-404.com/public_html/sanjuan/"
