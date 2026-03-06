@@ -31,5 +31,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 65002
           source: "build/*" # O build/* si cambiaste la config de Vite
-          target: "/domains/desarrollos-404.com/public_html/sanjuan"
+          target: "~/domains/desarrollos-404.com/public_html/sanjuan"
           strip_components: 1 # Evita crear una subcarpeta "dist" en el servidor
