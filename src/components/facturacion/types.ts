@@ -145,6 +145,7 @@ export interface Servicio {
 // ======================================
 export interface CrearFacturaPayload {
   cliente_id: number;
+  nombre_cliente?: string;
 
   servicio_id?: number | null;
   refaccion_id?: number | null;
