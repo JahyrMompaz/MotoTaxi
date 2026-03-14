@@ -46,6 +46,7 @@ interface TicketResult {
 export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Props) {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<'ticket' | 'mototaxi'>('ticket');
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   // --- Catálogos ---
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -198,6 +199,72 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
     setItems(copia);
     if (copia.length === 0) {
         setTicketSeleccionado(null);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!clienteId) return toast.error('Selecciona un cliente para la vista previa');
+    if (items.length === 0) return toast.error('No hay conceptos agregados');
+
+    setIsPreviewing(true);
+    const toastId = toast.loading('Generando vista previa...');
+
+    // Reutilizamos la misma lógica de construcción del payload que usas en el submit
+    const esSoloMototaxi = items.every(i => i.tipo_origen === 'Mototaxi');
+    const esSoloTicket = items.every(i => i.tipo_origen === 'Ticket');
+    let tipoVentaStr = 'Varios';
+    if (esSoloMototaxi) tipoVentaStr = 'Mototaxi';
+    if (esSoloTicket) tipoVentaStr = 'Refaccion'; 
+
+    const itemsPayload = items.map(i => ({
+        descripcion: i.descripcion,
+        cantidad: i.cantidad,
+        precio_unitario: i.precio_unitario,
+        producto_id: i.id_origen, 
+        producto_type: i.tipo_origen === 'Mototaxi' ? 'App\\Models\\Mototaxi' : null,
+        clave_producto_servicio: i.clave_producto_servicio,
+        clave_unidad: i.clave_unidad
+    }));
+
+    const payload = {
+      cliente_id: clienteId,
+      tipo: 'Ingreso',
+      tipo_venta: tipoVentaStr,
+      metodo_pago: metodoPago,
+      forma_pago: formaPago,
+      uso_cfdi: usoCFDI,
+      items: itemsPayload 
+    };
+
+    try {
+      // Petición al nuevo endpoint que devuelve un PDF (Blob)
+      const res = await fetch(api('/facturas/preview'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/pdf',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include' // Mantiene tu sesión/cookies de auth
+      });
+
+      if (!res.ok) throw new Error('Error al generar preview');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Abre el PDF en una nueva pestaña
+      window.open(url, '_blank');
+      
+      // Limpiamos la memoria
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+      toast.success('Vista previa abierta en nueva pestaña', { id: toastId });
+
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al generar la vista previa', { id: toastId });
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
@@ -439,7 +506,21 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
 
   const Footer = (
     <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end mt-4 pt-4 border-t">
-      <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+      <Button variant="outline" onClick={() => onOpenChange(false)}>
+        Cancelar
+      </Button>
+      
+      {/* NUEVO BOTON DE VISTA PREVIA */}
+      <Button 
+        variant="outline" 
+        onClick={handlePreview} 
+        disabled={items.length === 0 || !clienteId || isPreviewing}
+        className="border-blue-300 text-blue-700 hover:bg-blue-50"
+      >
+        {isPreviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />} 
+        Vista Previa
+      </Button>
+
       <Button onClick={submit} className="bg-[#B02128] text-white" disabled={items.length === 0 || !clienteId}>
         <CheckCircle className="mr-2 h-4 w-4" /> Timbrar
       </Button>

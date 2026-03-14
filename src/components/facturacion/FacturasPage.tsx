@@ -556,7 +556,7 @@ export default function FacturasPage() {
       <Button variant="outline" onClick={() => setIsNotaCreditoOpen(false)}>
         Cancelar
       </Button>
-      <Button onClick={handleNotaCredito} className="bg-orange-600 text-white">
+      <Button onClick={handleNotaCredito} className="!bg-orange-600 text-white">
         Generar Nota
       </Button>
     </DialogFooter>
