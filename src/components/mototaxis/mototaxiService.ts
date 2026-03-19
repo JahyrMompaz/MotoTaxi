@@ -14,6 +14,7 @@ export interface Mototaxi {
   cilindraje?: string;
   transmision?: string;
   combustible?: string;
+  capacidad?: number;
 
   // --- NUEVOS CAMPOS IMPORTACIÓN ---
   pedimento?: string;

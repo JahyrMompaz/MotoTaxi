@@ -21,7 +21,8 @@ export function MototaxiForm({ moto, onSubmit }: MototaxiFormProps) {
       color: "", 
       anio: new Date().getFullYear(),
       motor: "",         
-      cilindraje: "",    
+      cilindraje: "",
+      capacidad: 0,    
       transmision: "",  
       combustible: "",   
       pedimento: "",      
@@ -129,6 +130,15 @@ export function MototaxiForm({ moto, onSubmit }: MototaxiFormProps) {
                 placeholder="Ej. ROJO"
                 value={formData.color} 
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })} 
+              />
+            </div>
+            <div>
+              <Label>Capacidad</Label>
+              <Input 
+                type="number"
+                placeholder="Ej. 3"
+                value={formData.capacidad} 
+                onChange={(e) => setFormData({ ...formData, capacidad: +e.target.value })} 
               />
             </div>
           </div>
