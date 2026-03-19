@@ -69,7 +69,7 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
   const [addMototaxiId, setAddMototaxiId] = useState<string>('');
   const [addCant, setAddCant] = useState<number>(1);
 
-  const [claveSat, setClaveSat] = useState<string>('25101503');
+  const [claveSat, setClaveSat] = useState<string>('25101804');
   const [claveUnidad, setClaveUnidad] = useState<string>('H87');
   // --- Estado: ITEMS ---
   const [items, setItems] = useState<LocalItem[]>([]);
