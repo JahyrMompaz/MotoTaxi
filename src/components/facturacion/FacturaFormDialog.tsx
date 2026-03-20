@@ -366,7 +366,7 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
           <Label className="text-xs">Uso CFDI</Label>
           <Select value={usoCFDI} onValueChange={setUsoCFDI}>
             <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="G01">G01</SelectItem><SelectItem value="G03">G03</SelectItem><SelectItem value="S01">S01</SelectItem></SelectContent>
+            <SelectContent><SelectItem value="G01">G01 - Adquisición de mercancías</SelectItem><SelectItem value="G03">G03 - Gastos en general</SelectItem><SelectItem value="S01">S01 - Sin efectos fiscales</SelectItem></SelectContent>
           </Select>
         </div>
         <div className="md:col-span-1">
@@ -559,7 +559,9 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[600px] h-[90vh] overflow-y-auto bg-white">
+      <DialogContent
+        style={{ maxWidth: "56rem" }}
+        className="w-[calc(100vw-2rem)] h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-6 w-6 text-[#B02128]" /> Facturación
