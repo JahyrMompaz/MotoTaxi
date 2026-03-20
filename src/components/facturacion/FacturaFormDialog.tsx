@@ -560,8 +560,8 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        style={{ maxWidth: "56rem", width: "calc(100vw - 2rem)" }}
-        className="max-h-[90vh] overflow-y-auto bg-white p-0">
+        style={{ maxWidth: "56rem" }}
+        className="w-[90vw] max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-6 w-6 text-[#B02128]" /> Facturación
