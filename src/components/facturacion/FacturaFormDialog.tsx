@@ -344,13 +344,13 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
         </div>
 
         <div className="md:col-span-2">
-            <Label className="text-xs text-gray-500">Nombre impreso en Factura (Opcional)</Label>
-            <Input 
-                value={nombreCliente}
-                onChange={(e) => setNombreCliente(e.target.value)}
-                placeholder="Ej. Fernando Pérez (Deja en blanco para usar el nombre del cliente base)"
-            />
-         </div>
+          <Label className="text-xs text-gray-500">Nombre impreso en Factura (Opcional)</Label>
+          <Input
+            value={nombreCliente}
+            onChange={(e) => setNombreCliente(e.target.value)}
+            placeholder="Ej. Fernando Pérez (Deja en blanco para usar el nombre del cliente base)"
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-2 md:contents">
           <div className="md:col-span-1">
@@ -560,8 +560,8 @@ export default function FacturasFormDialog({ open, onOpenChange, onCreated }: Pr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        style={{ maxWidth: "56rem" }}
-        className="w-[calc(100vw-2rem)] h-[90vh] overflow-y-auto bg-white">
+        style={{ maxWidth: "56rem", width: "calc(100vw - 2rem)" }}
+        className="max-h-[90vh] overflow-y-auto bg-white p-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-6 w-6 text-[#B02128]" /> Facturación
